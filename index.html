@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PensionTalk V2.0 (v100)</title>
+    
+    <link rel="apple-touch-icon" href="Pension-icon.png">
+    <link rel="icon" type="image/png" href="Pension-icon.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        [v-cloak] { display: none !important; }
+        body { margin: 0; padding: 0; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow-y: auto !important; padding-bottom: 80px; }
+        .app-shell { max-width: 448px; margin: 0 auto; background: white; min-height: 100vh; border-x: 1px solid #e2e8f0; position: relative; }
+
+        /* 고정 헤더 */
+        .fixed-header { 
+            position: fixed; top: 56px; left: 50%; transform: translateX(-50%); 
+            width: 100%; max-width: 448px; z-index: 40; 
+            border-bottom: 1px solid #e2e8f0; box-sizing: border-box; padding: 10px 16px;
+        }
+        .bg-gray-fix { background-color: #f8fafc; }
+        .bg-white-fix { background-color: white; }
+
+        .strategy-inner-scroll { max-height: 120px; overflow-y: auto; margin-bottom: 10px; padding-right: 4px; }
+        .strategy-inner-scroll::-webkit-scrollbar { width: 3px; }
+        .strategy-inner-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+
+        /* 리스크 경고 박스 */
+        .risk-alert-box {
+            background-color: #fff1f2; border: 1px solid #fda4af; color: #9f1239;
+            padding: 10px; border-radius: 8px; font-size: 11px; font-weight: bold;
+            margin-bottom: 10px; max-height: 100px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+        }
+        .risk-item { display: flex; align-items: flex-start; gap: 6px; line-height: 1.4; }
+        .risk-icon-warn { color: #f59e0b; } 
+        .risk-icon-danger { color: #ef4444; } 
+        .risk-icon-fatal { color: #991b1b; } 
+
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .blink-text { animation: blink 2s infinite; color: #ef4444; font-weight: 900; }
+
+        header { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 448px; height: 56px; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+        .chart-frame { position: relative; width: 100%; height: 300px; background-color: #ffffff; }
+        .custom-x-axis { display: flex; justify-content: space-between; padding: 0 10px; margin-top: 8px; border-top: 1px solid #f1f5f9; }
+        .custom-x-item { flex: 1; display: flex; flex-direction: column; align-items: center; height: 45px; padding-top: 6px; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; border-top: 1px solid #e2e8f0; display: grid; grid-template-columns: repeat(5, 1fr); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); max-width: 448px; margin: 0 auto; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; border: none; background: none; }
+        .form-input { width: 100%; border: 1px solid #cbd5e1; padding: 0.5rem; border-radius: 0.5rem; text-align: right; font-weight: 700; }
+        .nature-bar-wrap { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; display: flex; border: 1px solid #e2e8f0; }
+        .toggle-box { padding: 4px; background: #f1f5f9; border-radius: 12px; display: flex; gap: 4px; }
+        .t-btn { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 800; }
+        .t-btn-active { background: white; color: #4f46e5; shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .modal-container { background: white; width: 100%; max-width: 420px; border-radius: 24px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f1f5f9; background: white; shrink-0; }
+        
+        #critical-error { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); color: #ff5555; z-index: 9999; padding: 20px; font-family: monospace; }
+        
+        /* 도움말 전용 스타일 */
+        .help-content { font-size: 13px; line-height: 1.6; color: #334155; white-space: pre-wrap; }
+        .help-editor { width: 100%; height: 320px; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; outline: none; resize: none; background: #fcfcfc; }
+    </style>
+    <script>
+        window.onerror = function(msg, url, line) {
+            var el = document.getElementById('critical-error');
+            if(el) {
+                el.style.display = 'block';
+                el.innerHTML += "⛔ ERROR: " + msg + "\n(Line: " + line + ")\n";
+            }
+            return false;
+        };
+    </script>
+</head>
+<body>
+    <div id="critical-error"></div>
+
+    <div id="app" v-cloak class="app-shell">
+        <header>
+            <h1 class="text-indigo-900 font-black text-xl tracking-tighter">PensionTalk V2.0</h1>
+            <button @click="forceSync" :disabled="isLoading"><i class="fa-solid fa-arrows-rotate text-slate-400" :class="{'animate-spin': isLoading}"></i></button>
+        </header>
+
+        <main>
+            <div v-show="activeTab === 'home'">
+                <div ref="homeHeader" class="fixed-header bg-gray-fix">
+                    <div class="bg-indigo-800 p-5 rounded-3xl text-white shadow-xl relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <div class="text-[12px] text-indigo-300 font-black mb-2 uppercase tracking-wider">
+                                        {{ formatDashboardDate(currentDashboardData.date) }} 
+                                        <span class="opacity-50 text-[10px]">({{ viewMode === 'history' ? '실제' : '예정' }})</span>
+                                    </div>
+                                    <div v-if="globalRiskYear" class="blink-text text-xs">
+                                        <i class="fa-solid fa-bell mr-1"></i>금융경보 발령
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center justify-between" :class="{'opacity-100': !isPostTaxView, 'opacity-40': isPostTaxView}">
+                                        <span class="text-xs font-bold text-indigo-200 w-10">세전</span>
+                                        <span class="text-xl font-black tracking-tight">{{ formatWon(currentDashboardData.pre) }}<span class="text-xs ml-1 font-normal">원</span></span>
+                                    </div>
+                                    <div class="flex items-center justify-between" :class="{'opacity-100': isPostTaxView, 'opacity-40': !isPostTaxView}">
+                                        <span class="text-xs font-bold text-emerald-300 w-10">세후</span>
+                                        <span class="text-xl font-black tracking-tight text-emerald-100">{{ formatWon(currentDashboardData.post) }}<span class="text-xs ml-1 font-normal">원</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-white/10 pt-2 text-right">
+                            <span class="text-[10px] text-indigo-300 font-bold mr-2">총 연금 자산</span>
+                            <span class="text-sm font-black text-emerald-400">{{ formatDisplay(totalInvestableAssets) }}만</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 space-y-4" :style="{ paddingTop: padHome + 'px' }">
+                    <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-4">
+                        <div class="flex justify-between items-center">
+                            <div class="toggle-box">
+                                <button @click="viewMode='simulation'" :class="viewMode==='simulation'?'t-btn-active':'text-slate-400'" class="t-btn">미래</button>
+                                <button @click="viewMode='history'" :class="viewMode==='history'?'t-btn-active':'text-slate-400'" class="t-btn">과거</button>
+                            </div>
+                            <div v-if="viewMode==='simulation'" class="toggle-box">
+                                <button @click="isPostTaxView=false" :class="!isPostTaxView?'t-btn-active':'text-slate-400'" class="t-btn">세전</button>
+                                <button @click="isPostTaxView=true" :class="isPostTaxView?'t-btn-active':'text-slate-400'" class="t-btn">세후</button>
+                            </div>
+                        </div>
+                        <div class="chart-frame">
+                            <canvas id="mainChart"></canvas>
+                            <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/80 z-10 text-slate-400 text-xs font-bold">로딩 중...</div>
+                            <div v-if="!isLoading && assets.length === 0" class="absolute inset-0 flex items-center justify-center bg-white/80 z-10 text-slate-400 text-xs font-bold">자산 데이터가 없습니다.</div>
+                        </div>
+                        <div class="custom-x-axis">
+                            <div v-for="(item, idx) in currentViewAxis" :key="idx" class="custom-x-item">
+                                <div class="text-[13px] font-bold text-slate-700 mb-1" :class="{'text-indigo-600': item.month==='1'}">{{ item.month }}</div>
+                                <div class="text-[10px] text-slate-400 font-bold" v-if="item.showYear">{{ item.year }}</div>
+                            </div>
+                        </div>
+                        <div class="pt-4 px-1">
+                            <input v-if="fullLabels.length > monthsPerView" type="range" v-model.number="chartOffset" :min="0" :max="Math.max(0, fullLabels.length - monthsPerView)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            <div v-if="fullLabels.length > 0" class="flex justify-between items-center text-[10px] text-slate-500 font-bold mt-2 px-1">
+                                <span>{{ formatShortDate(fullLabels[0]) }}</span>
+                                <span>{{ formatShortDate(fullLabels[fullLabels.length-1]) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'assets'">
+                <div ref="assetsHeader" class="fixed-header bg-white-fix flex justify-between items-center">
+                    <h2 class="font-black text-lg text-slate-700">연금 인벤토리</h2>
+                    <button @click="openAssetModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-indigo-100">+ 추가</button>
+                </div>
+                <div class="p-4 space-y-3" :style="{ paddingTop: padAssets + 'px' }">
+                    <div v-for="(a, idx) in assets" :key="a.아이디" @click="openAssetModal(a)" class="bg-white border-2 border-slate-50 p-4 rounded-2xl shadow-sm relative overflow-hidden active:bg-slate-100 transition">
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5" :style="{backgroundColor: getChartColor(idx)}"></div>
+                        <div class="flex justify-between items-center pl-2">
+                            <div><div class="text-[10px] font-black text-slate-300 mb-1 uppercase">{{ a.유형 }} | {{ a.상태 }}</div><div class="font-bold text-slate-800">{{ a.이름 }}</div></div>
+                            <div class="text-right"><div class="text-lg font-black">{{ formatDisplay(getAssetValue(a)) }}<span class="text-xs font-normal opacity-40 ml-1">만</span></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'strategy'">
+                <div ref="stratHeader" class="fixed-header bg-white-fix">
+                    <div class="flex justify-between items-center mb-3"><h2 class="font-black text-lg text-slate-700">인출 전략 설계</h2></div>
+                    
+                    <div v-if="currentStrategyRisks.length > 0" class="risk-alert-box">
+                        <div v-for="(item, idx) in currentStrategyRisks" :key="idx" class="risk-item">
+                            <i class="fa-solid mt-0.5" 
+                               :class="{
+                                   'fa-triangle-exclamation risk-icon-warn': item.type === 'warn',
+                                   'fa-circle-exclamation risk-icon-danger': item.type === 'danger',
+                                   'fa-radiation risk-icon-fatal': item.type === 'fatal'
+                               }"></i>
+                            <span>{{ item.msg }}</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-indigo-950 text-white rounded-2xl p-5 shadow-2xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-[10px] font-black opacity-50 uppercase">{{ stratSliderDate || '조회중' }} 예상 구성비</h3>
+                            <span class="text-[10px] font-black text-emerald-400">Total: {{ formatDisplay(dynamicTotalAssets) }}만</span>
+                        </div>
+                        <div class="strategy-inner-scroll">
+                            <div v-for="item in dynamicNatureBreakdown" :key="item.name" class="mb-1">
+                                <div class="flex justify-between text-[10px] font-bold"><span>{{ item.name }}</span><span class="opacity-40">{{ formatDisplay(item.total) }}만</span></div>
+                                <div class="nature-bar-wrap">
+                                    <div class="bg-emerald-400" :style="{width: item.p1 + '%'}"></div>
+                                    <div class="bg-blue-400" :style="{width: item.p2 + '%'}"></div>
+                                    <div class="bg-orange-400" :style="{width: item.p3 + '%'}"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-white/10"><input type="range" v-model.number="stratOffset" :min="0" :max="Math.max(0, simMonthsForStrat.length - 1)" class="w-full h-1.5 bg-white/20"></div>
+                    </div>
+                </div>
+                
+                <div class="p-4 space-y-4" :style="{ paddingTop: padStrat + 'px' }">
+                    <div v-for="s in strategies" :key="s.아이디" class="bg-white border rounded-3xl p-6 shadow-sm relative">
+                        <button @click="deleteStrategy(s.아이디)" class="absolute top-5 right-5 text-slate-200 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+                        <div class="flex gap-4 mb-4">
+                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-1 uppercase">시작</label><input type="month" v-model="s.시작연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
+                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-1 uppercase">종료</label><input type="month" v-model="s.종료연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
+                        </div>
+                        <div class="space-y-3 border-t pt-5">
+                            <div v-for="a in assets" :key="a.이름" class="flex justify-between items-center">
+                                <span class="text-xs font-black text-slate-500 truncate w-24">{{ a.이름 }}</span>
+                                <div class="flex items-center gap-1"><input type="number" v-model.number="s.assets[a.이름]" @input="riskTick++" class="w-28 text-right text-xs font-black border-b p-1 outline-none" placeholder="0"><span class="text-[10px] text-slate-300 font-bold">원</span></div>
+                            </div>
+                        </div>
+                        <button @click="saveStrategy(s)" class="w-full mt-5 bg-indigo-50 text-indigo-700 py-3 rounded-2xl text-xs font-black">저장</button>
+                    </div>
+                    <button @click="addStrategy" class="w-full py-6 border-2 border-dashed border-slate-200 text-slate-400 rounded-3xl font-black text-sm hover:bg-white transition">+ 전략 추가</button>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'history'">
+                <div ref="historyHeader" class="fixed-header bg-gray-fix space-y-2">
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-3xl p-4 shadow-sm flex justify-between items-center">
+                        <div>
+                            <div class="text-[10px] font-black text-indigo-400 uppercase mb-1">{{ historyYear }}년 총액</div>
+                            <div class="text-2xl font-black text-slate-800">{{ parseMoney(historyYearTotal).toLocaleString() }}원</div>
+                        </div>
+                        <select v-model="historyYear" class="bg-white border rounded-xl px-4 py-2 text-xs font-black shadow-inner outline-none">
+                            <option v-for="y in availableYears" :key="y" :value="y">{{ y }}년</option>
+                        </select>
+                    </div>
+                    <div class="bg-white border rounded-3xl p-4 shadow-sm space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="date" v-model="historyForm.수령일자" class="form-input text-xs">
+                            <select v-model="historyForm.자산이름" class="form-input text-xs">
+                                <option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option>
+                            </select>
+                        </div>
+                        <input type="number" v-model.number="historyForm.수령금액" class="form-input font-black text-indigo-600 text-lg" placeholder="원 단위 입력">
+                        <button @click="addHistory" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-black text-sm">기록 저장</button>
+                    </div>
+                </div>
+                <div class="p-4 space-y-2" :style="{ paddingTop: padHistory + 'px' }">
+                    <div v-for="h in filteredHistory" :key="h.아이디" class="bg-white border p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                        <div><div class="text-[10px] text-slate-300 font-bold mb-1">{{ String(h.수령일자).substring(0,10) }}</div><div class="font-bold text-slate-700">{{ h.자산이름 }}</div></div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-indigo-600 font-black">{{ parseMoney(h.수령금액).toLocaleString() }}원</div>
+                            <button @click="deleteHistory(h.아이디)" class="text-slate-200 hover:text-red-400"><i class="fa-solid fa-circle-xmark"></i></button>
+                        </div>
+                    </div>
+                    <div v-if="filteredHistory.length === 0" class="text-center text-slate-400 text-xs py-4">기록 없음</div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'settings'" class="p-4 space-y-4" style="padding-top: 70px;">
+                <h2 class="font-black text-lg text-slate-700">환경 설정</h2>
+                <div class="bg-white border rounded-3xl p-6 space-y-6">
+                    <div><label class="font-black text-indigo-800 uppercase text-[10px] block mb-2">생년월일</label><input v-model="settings.birthDate" type="date" class="form-input"></div>
+                    <div><label class="font-black text-indigo-800 uppercase text-[10px] block mb-2">화면 표시 개월 수</label><input v-model.number="monthsPerView" type="number" class="form-input font-bold"></div>
+                    <div><label class="font-black text-indigo-800 uppercase text-[10px] block mb-2">예상 연 투자수익률 (%)</label><input v-model.number="settings.returnRate" type="number" class="form-input font-bold" step="0.1"></div>
+                    <div class="border-t pt-6 space-y-5">
+                        <h3 class="text-xs font-black text-indigo-800 tracking-widest uppercase">리스크 한도 기준</h3>
+                        <div><label class="font-bold text-[10px] uppercase block mb-2">종합과세 한도 (만)</label><input v-model.number="settings.taxLimit" type="number" class="form-input"></div>
+                        <div><label class="font-bold text-[10px] uppercase block mb-2">건보료 피부양자 소득 기준 (만)</label><input v-model.number="settings.healthLimit" type="number" class="form-input"></div>
+                        <div><label class="font-bold text-[10px] text-orange-600 block mb-2">기타 금융 소득 합계 (원/연)</label><input v-model.number="settings.otherIncome" type="number" class="form-input border-orange-100 bg-orange-50/20" placeholder="0"></div>
+                    </div>
+                    <button @click="saveSettings" class="w-full bg-indigo-900 text-white py-4 rounded-2xl font-black shadow-xl">설정 저장</button>
+                    <button @click="showHelpModal = true" class="w-full bg-blue-50 text-blue-600 py-3 rounded-2xl font-bold mt-4 text-sm border border-blue-100 shadow-sm"><i class="fa-solid fa-book-open mr-2"></i>도움말 (주요 세법/제도)</button>
+                    <button @click="resetFullData" class="w-full text-red-400 text-[10px] font-bold underline pt-4 text-center">전체 데이터 초기화</button>
+                </div>
+            </div>
+        </main>
+
+        <nav class="nav-bar">
+            <button @click="activeTab='home'" :class="activeTab==='home'?'text-indigo-600':'text-slate-300'" class="nav-item"><i class="fa-solid fa-house text-xl"></i><span class="text-[9px] font-bold uppercase">홈</span></button>
+            <button @click="activeTab='assets'" :class="activeTab==='assets'?'text-indigo-600':'text-slate-300'" class="nav-item"><i class="fa-solid fa-wallet text-xl"></i><span class="text-[9px] font-bold uppercase">자산</span></button>
+            <button @click="activeTab='strategy'" :class="activeTab==='strategy'?'text-indigo-600':'text-slate-300'" class="nav-item"><i class="fa-solid fa-chess-knight text-xl"></i><span class="text-[9px] font-bold uppercase">전략</span></button>
+            <button @click="activeTab='history'" :class="activeTab==='history'?'text-indigo-600':'text-slate-300'" class="nav-item"><i class="fa-solid fa-clock-rotate-left text-xl"></i><span class="text-[9px] font-bold uppercase">이력</span></button>
+            <button @click="activeTab='settings'" :class="activeTab==='settings'?'text-indigo-600':'text-slate-300'" class="nav-item"><i class="fa-solid fa-sliders text-xl"></i><span class="text-[9px] font-bold uppercase">설정</span></button>
+        </nav>
+
+        <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+            <div class="modal-container">
+                <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">연금 자산 상세 설정</h3><button @click="showModal = false" class="text-slate-300 text-2xl">&times;</button></div>
+                <div class="modal-body space-y-6">
+                    <div><label class="font-black text-slate-400 text-[10px] uppercase block mb-1">종류</label><select v-model="form.유형" class="form-input font-black text-indigo-900"><option>국민연금</option><option>개인연금</option><option>퇴직연금(IRP)</option></select></div>
+                    <div><label class="font-black text-slate-400 text-[10px] uppercase block mb-1">별칭</label><input v-model="form.이름" class="form-input font-black"></div>
+                    <div><label class="font-black text-slate-400 text-[10px] uppercase block mb-1">상태</label>
+                        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                            <button v-for="s in ['납입중', '보류/거치', '수령중']" @click="form.상태 = s" :class="form.상태 === s ? 'bg-white text-indigo-600 shadow' : 'text-slate-400'" class="flex-1 py-2 text-xs font-black rounded-lg transition">{{ s }}</button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border space-y-4 shadow-inner">
+                        <div v-if="(form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && form.상태 !== '납입중'"><label class="flex items-center text-xs font-black text-indigo-800 cursor-pointer"><input type="checkbox" v-model="form.운용수익포함" class="mr-2 w-4 h-4">투자 운용형 (ETF/펀드)</label></div>
+                        <div v-if="form.유형 !== '국민연금'">
+                            <div v-if="form.상태 === '수령중' && (form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && !form.운용수익포함" class="bg-indigo-100 p-4 rounded-xl text-indigo-700 text-xs font-black border border-indigo-200 italic tracking-tighter">보험형 수령 중: 잔고 자동 계산됨</div>
+                            <div v-else><label class="uppercase text-[10px] font-black text-slate-400 block mb-1">현재 보유액 (원)</label><input type="number" v-model.number="form.평가금액" class="form-input font-black text-indigo-600 text-xl border-indigo-100"></div>
+                        </div>
+                        <div class="space-y-3 border-t pt-4">
+                             <div class="flex justify-between items-center"><span class="text-[11px] font-black text-slate-500 uppercase tracking-tighter">비과세 원금 (원)</span><input v-model.number="form.비과세원금" type="number" class="w-32 border-b-2 text-right text-xs font-bold bg-transparent outline-none"></div>
+                             <div class="flex justify-between items-center"><span class="text-[11px] font-black text-slate-500 uppercase tracking-tighter">이연퇴직소득 (원)</span><input v-model.number="form.이연퇴직소득" type="number" class="w-32 border-b-2 text-right text-xs font-bold bg-transparent outline-none"></div>
+                             <div class="flex justify-between items-center"><span class="text-[11px] font-black text-orange-500 uppercase tracking-tighter">세액공제 원금 (원)</span><input v-model.number="form.세액공제원금" type="number" class="w-32 border-b-2 border-orange-200 text-right text-xs font-bold bg-transparent outline-none"></div>
+                        </div>
+                    </div>
+                    <div v-if="form.상태 !== '납입중'" class="bg-indigo-50 p-5 rounded-2xl space-y-4 border border-indigo-100 shadow-sm">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">개시 연월</label><input v-model="form.개시연월" type="month" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none focus:border-indigo-500 transition"></div>
+                            <div v-if="form.유형 !== '국민연금'"><label class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">수령 기간(년)</label><input v-model.number="form.수령기간" type="number" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">월 수령(세전)</label><input v-model.number="form.수령액_세전" type="number" class="w-full border-b-2 border-indigo-200 bg-transparent font-black text-right outline-none"></div>
+                            <div><label class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">월 수령(세후)</label><input v-model.number="form.수령액_세후" type="number" class="w-full border-b-2 border-indigo-200 bg-transparent font-black text-right outline-none"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer flex gap-3 shrink-0"><button v-if="modalMode==='edit'" @click="deleteAsset" class="flex-1 py-4 border rounded-2xl text-red-400 font-black text-sm">삭제</button><button @click="saveAsset" class="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg text-sm">저장하기</button></div>
+            </div>
+        </div>
+
+        <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false">
+            <div class="modal-container">
+                <div class="flex justify-between items-center p-4 border-b bg-white">
+                    <h3 class="font-black text-slate-700 tracking-tighter">주요 세법 및 제도 안내</h3>
+                    <div class="flex items-center gap-3">
+                        <button v-if="!isHelpEditing" @click="isHelpEditing = true" class="text-slate-400 hover:text-indigo-600"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button v-if="isHelpEditing" @click="saveHelp" class="text-emerald-500 font-bold text-xs">저장</button>
+                        <button @click="showHelpModal = false" class="text-slate-300 text-2xl ml-2">&times;</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <textarea v-if="isHelpEditing" v-model="settings.helpContent" class="help-editor" placeholder="여기에 도움말을 입력하세요."></textarea>
+                    <div v-else class="help-content" v-text="settings.helpContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycby7l28cN3X-HH7ezhalbRvMRHO_gc5ki9a7sPA5FjJS5e3dTnHiiuikTYwz2wVSEPRv/exec";
+
+        const { createApp, nextTick } = Vue;
+
+        const DEFAULT_HELP_TEXT = 
+`📌 연금소득세 (사적연금)
+- 70세 미만: 5.5%
+- 70세 ~ 79세: 4.4%
+- 80세 이상: 3.3%
+- 종신형 수령: 4.4% (80세 이상은 3.3%)
+
+📌 종합과세 기준 (사적연금)
+- 연간 수령액 합계 1,500만원 초과 시 종합소득세 과세 대상이 됩니다.
+- 단, 분리과세(16.5%) 선택 가능
+
+📌 건강보험료 피부양자 자격
+- 소득 요건: 연간 합산 소득 2,000만원 이하
+- 재산 요건: 재산세 과세표준 5.4억 이하 (초과 시 소득 1,000만원 이하)
+- 탈락 시 지역가입자로 전환되어 건보료 부과됨
+
+※ 본 내용은 참고용이며, 정확한 세무 상담은 전문가와 상의하세요.`;
+
+        const app = createApp({
+            data() {
+                return {
+                    activeTab: 'home',
+                    viewMode: 'simulation',
+                    isLoading: true,
+                    assets: [],
+                    strategies: [],
+                    history: [],
+                    settings: { 
+                        birthDate: '1965-01-01', 
+                        taxLimit: 1500, 
+                        healthLimit: 2000, 
+                        otherIncome: 0, 
+                        returnRate: 4.0,
+                        helpContent: DEFAULT_HELP_TEXT 
+                    },
+                    monthsPerView: 8,
+                    chartOffset: 0,
+                    stratOffset: 0,
+                    showModal: false,
+                    showHelpModal: false,
+                    isHelpEditing: false,
+                    modalMode: 'add',
+                    form: {},
+                    historyForm: { 수령일자: new Date().toISOString().substring(0,10), 자산이름: '', 수령금액: 0 },
+                    historyYear: new Date().getFullYear().toString(),
+                    isPostTaxView: false,
+                    chartInstance: null,
+                    fullLabels: [],
+                    rawBarData: [],
+                    rawBarDataPost: [],
+                    rawLineData: [],
+                    calculatedYMax: 0,
+                    calculatedY1Max: 0,
+                    padHome: 250,
+                    padStrat: 350,
+                    padHistory: 220,
+                    padAssets: 140,
+                    riskTick: 0
+                }
+            },
+            computed: {
+                totalInvestableAssets() {
+                    return (this.assets || []).reduce((sum, a) => sum + (a.유형 === '국민연금' ? 0 : this.getAssetValue(a)), 0);
+                },
+
+                currentDashboardDate() {
+                    if (!this.fullLabels || !this.fullLabels.length) return '';
+                    return this.fullLabels[this.chartOffset] || '';
+                },
+
+                currentDashboardData() {
+                    this.riskTick;
+                    if (!this.rawBarData.length || !this.rawBarData[0]) return { pre: 0, post: 0, date: '-' };
+                    
+                    const idx = this.chartOffset;
+                    let pre = 0;
+                    let post = 0;
+                    
+                    this.assets.forEach((_, assetIdx) => {
+                        if(this.rawBarData[assetIdx] && this.rawBarData[assetIdx][idx] !== undefined) {
+                            pre += this.rawBarData[assetIdx][idx];
+                        }
+                        if(this.rawBarDataPost[assetIdx] && this.rawBarDataPost[assetIdx][idx] !== undefined) {
+                            post += this.rawBarDataPost[assetIdx][idx];
+                        }
+                    });
+
+                    return {
+                        pre: pre * 10000,
+                        post: post * 10000,
+                        date: this.fullLabels[idx]
+                    };
+                },
+
+                simMonthsForStrat() {
+                   const labels = this.generateLabelsFromStrategy();
+                   if(!labels.length) {
+                       const now = new Date(); let sY = now.getFullYear(), sM = now.getMonth();
+                       for(let i=0; i<120; i++) { 
+                           let d = new Date(sY, sM + i); 
+                           labels.push(this.formatShortDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)); 
+                       }
+                   }
+                   return labels;
+                },
+
+                stratSliderDate() {
+                    return this.simMonthsForStrat[this.stratOffset] || '';
+                },
+
+                dynamicNatureBreakdown() {
+                    const date = this.stratSliderDate;
+                    if(!date) return [];
+                    const sliderDate = new Date(date + '-01');
+                    const now = new Date();
+                    const monthsPassed = (sliderDate.getFullYear() - now.getFullYear()) * 12 + (sliderDate.getMonth() - now.getMonth());
+                    
+                    return this.assets.filter(a => a.유형 !== '국민연금').map(a => {
+                        let total = this.getAssetValue(a);
+                        const strat = this.strategies.find(s => String(s.시작연월) <= date && String(s.종료연월) >= date);
+                        const monthlyOut = (strat && strat.assets && strat.assets[a.이름]) ? this.parseMoney(strat.assets[a.이름]) : (a.상태==='수령중' ? this.parseMoney(a.수령액_세전) : 0);
+                        const estValue = Math.max(0, total - (monthlyOut * Math.max(0, monthsPassed)));
+                        if (estValue <= 0) return null;
+                        const v1 = Math.max(0, this.parseMoney(a.비과세원금) - (monthlyOut * monthsPassed));
+                        const v2 = Math.max(0, this.parseMoney(a.이연퇴직소득) - Math.max(0, (monthlyOut * monthsPassed) - this.parseMoney(a.비과세원금)));
+                        return { name: a.이름, total: estValue, p1: (v1/estValue)*100, p2: (v2/estValue)*100, p3: ((estValue-v1-v2)/estValue)*100 };
+                    }).filter(x => x);
+                },
+
+                dynamicTotalAssets() {
+                    return this.dynamicNatureBreakdown.reduce((s,i) => s + i.total, 0);
+                },
+
+                currentStrategyRisks() {
+                    this.riskTick;
+                    const result = [];
+                    const date = this.stratSliderDate;
+                    if(!date) return result;
+                    const year = parseInt(date.split('-')[0]);
+
+                    let privatePensionSum = 0;
+                    let totalIncomeSum = 0;
+                    
+                    for(let m=1; m<=12; m++) {
+                        const mStr = `${year}-${String(m).padStart(2,'0')}`;
+                        const strat = this.strategies.find(s => String(s.시작연월) <= mStr && String(s.종료연월) >= mStr);
+                        this.assets.forEach(a => {
+                            let v = 0;
+                            if(strat && strat.assets && strat.assets[a.이름] !== undefined) {
+                                v = this.parseMoney(strat.assets[a.이름]);
+                            } else if (a.상태 === '수령중') {
+                                v = this.parseMoney(a.수령액_세전);
+                            }
+                            if (a.유형 === '국민연금') { totalIncomeSum += v; } 
+                            else { privatePensionSum += v; totalIncomeSum += v; }
+                        });
+                    }
+                    totalIncomeSum += (this.parseMoney(this.settings.otherIncome) || 0);
+                    const taxLimit = (this.settings.taxLimit || 1500) * 10000;
+                    const healthLimit = (this.settings.healthLimit || 2000) * 10000;
+
+                    if (privatePensionSum > taxLimit) {
+                        result.push({ msg: `${year}년 사적연금 ${this.formatDisplay(privatePensionSum)}만 (분리과세 초과)`, type: 'warn' });
+                    }
+                    if (totalIncomeSum > healthLimit) {
+                        result.push({ msg: `${year}년 총소득 ${this.formatDisplay(totalIncomeSum)}만 (피부양자 탈락/지역가입 전환)`, type: 'danger' });
+                        result.push({ msg: `💸 건보료 상승 주의! (초과 소득 7.09% 등 추가 부과)`, type: 'fatal' });
+                    }
+                    return result;
+                },
+
+                globalRiskYear() { return this.currentStrategyRisks.length > 0; },
+                sortedHistory() { return [...(this.history || [])].sort((a,b) => String(b.수령일자).localeCompare(String(a.수령일자))); },
+                filteredHistory() { return this.history.filter(h => String(h.수령일자).startsWith(this.historyYear)); },
+                availableYears() {
+                    const yrs = new Set();
+                    yrs.add(new Date().getFullYear().toString());
+                    this.history.forEach(h => {
+                        if(h.수령일자) {
+                            const y = String(h.수령일자).substring(0, 4);
+                            if(!isNaN(y)) yrs.add(y);
+                        }
+                    });
+                    return Array.from(yrs).sort((a,b)=>b-a);
+                },
+                historyYearTotal() { return this.filteredHistory.reduce((s, h) => s + this.parseMoney(h.수령금액), 0); },
+                currentRangeText() {
+                    if(!this.fullLabels.length) return { start: '', end: '' };
+                    const start = this.chartOffset;
+                    const end = Math.min(start + this.monthsPerView - 1, this.fullLabels.length - 1);
+                    return { start: this.fullLabels[start], end: this.fullLabels[end] };
+                },
+                currentViewAxis() {
+                    if(!this.fullLabels.length) return [];
+                    const start = this.chartOffset;
+                    const end = Math.min(start + this.monthsPerView, this.fullLabels.length);
+                    const labs = this.fullLabels.slice(start, end);
+                    while(labs.length < this.monthsPerView) labs.push('');
+                    return labs.map((l, i) => {
+                        if(!l) return { year: '', month: '', showYear: false };
+                        const parts = l.split('-');
+                        const y = parts[0].slice(2);
+                        const m = String(Number(parts[1]));
+                        const showY = (i === 0) || (m === '1');
+                        return { year: y, month: m, showYear: showY };
+                    });
+                }
+            },
+            watch: {
+                activeTab(v) { 
+                    if (v === 'home') this.drawChart(); 
+                    nextTick(() => this.updateLayout());
+                },
+                chartOffset() { this.drawChart(); },
+                monthsPerView() { this.drawChart(); },
+                assets: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); } },
+                strategies: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); } },
+                viewMode() { this.preCalculateData(); this.drawChart(); },
+                isPostTaxView() { this.drawChart(); }
+            },
+            mounted() {
+                this.loadLocal();
+                this.fullLabels = this.generateLabelsFromStrategy();
+                if (!GAS_API_URL.includes("여기에")) { this.fetchData(); } else { this.isLoading = false; }
+                this.preCalculateData();
+                this.drawChart(); 
+                setTimeout(() => this.updateLayout(), 500);
+                window.addEventListener('resize', this.updateLayout);
+            },
+            methods: {
+                async fetchData() { 
+                    this.isLoading = true; 
+                    try { 
+                        const res = await fetch(`${GAS_API_URL}?op=loadAll`); 
+                        const json = await res.json(); 
+                        if (json.result === 'success') { 
+                            this.assets = this.sanitizeData(json.data.assets || []).map(a => {
+                                if(a.개시연월 && a.개시연월.length > 7) a.개시연월 = a.개시연월.substring(0, 7);
+                                return a;
+                            });
+                            this.strategies = this.sanitizeData(json.data.strategies || []).map(s => {
+                                s.시작연월 = this.toMonthString(s.시작연월);
+                                s.종료연월 = this.toMonthString(s.종료연월);
+                                let assetObj = {};
+                                try {
+                                    if (typeof s.assets === 'object' && s.assets !== null) assetObj = s.assets;
+                                    else if (typeof s.assets === 'string') {
+                                        const cleanStr = s.assets.trim();
+                                        if (cleanStr && cleanStr !== "undefined" && cleanStr !== "null") assetObj = JSON.parse(cleanStr);
+                                    }
+                                } catch (e) { assetObj = {}; }
+                                const mergedAssets = {};
+                                this.assets.forEach(a => { mergedAssets[a.이름] = assetObj[a.이름] || 0; });
+                                return { ...s, assets: mergedAssets };
+                            });
+                            this.history = this.sanitizeData(json.data.history || []); 
+                            if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); 
+                            
+                            this.saveLocal(); 
+                            this.preCalculateData(); 
+                            this.drawChart(); 
+                            this.isLoading = false; 
+                        } 
+                    } catch (e) { 
+                        console.error(e); 
+                        this.isLoading = false;
+                        alert("데이터 로딩 실패");
+                    } 
+                },
+
+                async forceSync() {
+                    this.isLoading = true;
+                    this.assets = []; 
+                    this.strategies = [];
+                    await this.fetchData();
+                    this.isLoading = false;
+                },
+
+                formatDashboardDate(dStr) {
+                    if (!dStr) return '';
+                    const parts = dStr.split('-');
+                    if(parts.length < 2) return dStr;
+                    return `${parts[0]}년 ${parseInt(parts[1])}월`;
+                },
+
+                drawChart() {
+                    if (this.activeTab !== 'home') return;
+                    requestAnimationFrame(() => {
+                        const ctx = document.getElementById('mainChart');
+                        if (!ctx) return;
+                        if (this.chartInstance) { this.chartInstance.destroy(); this.chartInstance = null; }
+
+                        const start = this.chartOffset; 
+                        const end = Math.min(start + this.monthsPerView, this.fullLabels.length);
+                        const datasets = [];
+                        let currentPeriodWithdrawalSums = new Array(this.monthsPerView).fill(0);
+                        let preTaxSums = new Array(this.monthsPerView).fill(0); 
+
+                        this.assets.forEach((a, idx) => {
+                            const sourceData = this.isPostTaxView ? this.rawBarDataPost : this.rawBarData;
+                            const slicedData = sourceData[idx].slice(start, end);
+                            slicedData.forEach((val, i) => { currentPeriodWithdrawalSums[i] += val; });
+                            const preData = this.rawBarData[idx].slice(start, end);
+                            preData.forEach((val, i) => { preTaxSums[i] += val; });
+                            while(slicedData.length < this.monthsPerView) slicedData.push(0);
+                            datasets.push({ type: 'bar', label: a.이름, backgroundColor: this.getChartColor(idx), data: slicedData, stack: 'a', order: 2, yAxisID: 'y' });
+                        });
+
+                        if (this.viewMode === 'simulation') {
+                            const slicedLine = this.rawLineData.slice(start, end);
+                            const maxBalanceInView = Math.max(...slicedLine, 1);
+                            const targetRightMax = maxBalanceInView / 0.9;
+                            this.calculatedY1Max = (Math.ceil(targetRightMax / 1000) * 1000 / 10000).toFixed(2);
+                            while(slicedLine.length < this.monthsPerView) slicedLine.push(0);
+                            datasets.push({ type: 'line', label: '잔고', borderColor: '#334155', borderWidth: 3, pointRadius: 0, data: slicedLine, yAxisID: 'y1', order: 1, tension: 0.1 });
+                        }
+
+                        const maxWithdrawalInView = Math.max(...preTaxSums, 1);
+                        this.calculatedYMax = this.getNiceScale(maxWithdrawalInView / 0.7, 10);
+
+                        try {
+                            this.chartInstance = new Chart(ctx, {
+                                type: 'bar',
+                                data: { labels: new Array(this.monthsPerView).fill(''), datasets: datasets },
+                                options: {
+                                    responsive: true, maintainAspectRatio: false, animation: false,
+                                    interaction: { mode: 'index', intersect: false },
+                                    plugins: { 
+                                        legend: { display: false },
+                                        tooltip: {
+                                            filter: function(tooltipItem) { return tooltipItem.parsed.y > 0; },
+                                            callbacks: {
+                                                label: function(context) {
+                                                    let label = context.dataset.label || '';
+                                                    let value = context.parsed.y;
+                                                    if (context.dataset.type === 'line') {
+                                                        return label + ': ' + Math.floor(value).toLocaleString() + '만원'; 
+                                                    } else {
+                                                        return label + ': ' + Math.round(value * 10000).toLocaleString() + '원';
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        x: { display: false },
+                                        y: { stacked: true, position: 'left', ticks: { callback: v => v.toLocaleString(), font: {size:10} }, min: 0, max: this.calculatedYMax },
+                                        y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, display: this.viewMode === 'simulation', min: 0, max: this.calculatedY1Max * 10000, ticks: { callback: v => (v / 10000).toFixed(2) + '억', font: {size:10} } }
+                                    }
+                                }
+                            });
+                        } catch(e) { console.error("Chart Error:", e); }
+                    });
+                },
+
+                updateLayout() {
+                    if (this.$refs.homeHeader) this.padHome = this.$refs.homeHeader.offsetHeight + 70;
+                    if (this.$refs.stratHeader) this.padStrat = this.$refs.stratHeader.offsetHeight + 70;
+                    if (this.$refs.historyHeader) this.padHistory = this.$refs.historyHeader.offsetHeight + 70;
+                    if (this.$refs.assetsHeader) this.padAssets = this.$refs.assetsHeader.offsetHeight + 70;
+                },
+
+                formatWon(v) { 
+                    try {
+                        if(!v && v !== 0) return 0;
+                        return this.parseMoney(v).toLocaleString(); 
+                    } catch(e) { return 0; }
+                },
+                formatDisplay(v) { 
+                    try {
+                        return Math.round(this.parseMoney(v) / 10000).toLocaleString(); 
+                    } catch(e) { return 0; }
+                },
+
+                toMonthString(val) {
+                    if (!val) return "";
+                    if (typeof val === 'string' && val.length === 7 && val.includes('-')) return val;
+                    if (typeof val === 'string' && val.length > 7) return val.substring(0, 7);
+                    if (val instanceof Date) {
+                        const y = val.getFullYear();
+                        const m = String(val.getMonth() + 1).padStart(2, '0');
+                        return `${y}-${m}`;
+                    }
+                    return "";
+                },
+                getNiceScale(num, step) {
+                    if(num <= 0) return 10;
+                    return Math.ceil(num / step) * step;
+                },
+                formatShortDate(dStr) {
+                    if(!dStr) return '';
+                    if(dStr.indexOf('.') > -1) return dStr;
+                    const parts = dStr.split('-');
+                    if(parts.length < 2) return dStr;
+                    return `${parts[0].slice(2)}.${parseInt(parts[1])}`; 
+                },
+                parseMoney(v) { 
+                    if (v === undefined || v === null || v === '') return 0;
+                    if (typeof v === 'number') return v;
+                    let s = String(v).replace(/[^0-9.-]/g, "");
+                    return parseFloat(s) || 0; 
+                },
+                getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
+                getAssetValue(a) { return this.parseMoney(a.평가금액); },
+
+                generateLabelsFromStrategy() {
+                    const cleanStrategies = JSON.parse(JSON.stringify(this.strategies));
+                    let minDate = new Date(); 
+                    let maxDate = new Date(minDate.getFullYear() + 10, minDate.getMonth());
+                    const startDates = cleanStrategies.map(s => s.시작연월).filter(d => d).sort();
+                    const endDates = cleanStrategies.map(s => s.종료연월).filter(d => d).sort();
+                    if (startDates.length > 0) {
+                        const parts = startDates[0].split('-');
+                        minDate = new Date(parts[0], parts[1]-1, 1);
+                    }
+                    if (endDates.length > 0) {
+                        const parts = endDates[endDates.length-1].split('-');
+                        maxDate = new Date(parts[0], parts[1]-1, 1);
+                    }
+                    const labels = [];
+                    const totalM = Math.max(8, (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth()) + 1);
+                    let sY = minDate.getFullYear(); let sM = minDate.getMonth();
+                    for(let i=0; i<totalM; i++) {
+                        let d = new Date(sY, sM + i);
+                        labels.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`);
+                    }
+                    return labels;
+                },
+
+                preCalculateData() {
+                    if (this.viewMode === 'history') {
+                        const uniqueDates = Array.from(new Set(this.history.map(h => String(h.수령일자).substring(0, 7)))).sort();
+                        if (uniqueDates.length === 0) {
+                            this.fullLabels = []; this.rawBarData = []; this.rawBarDataPost = []; this.rawLineData = []; return;
+                        }
+                        const startDateStr = uniqueDates[0]; const endDateStr = uniqueDates[uniqueDates.length - 1];
+                        const start = new Date(startDateStr + '-01'); const end = new Date(endDateStr + '-01');
+                        const totalMonths = Math.max(8, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1);
+                        const historyLabels = [];
+                        for(let i=0; i<totalMonths; i++) {
+                            let d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+                            historyLabels.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`);
+                        }
+                        this.fullLabels = historyLabels; 
+                        const cleanAssets = JSON.parse(JSON.stringify(this.assets));
+                        this.rawBarData = cleanAssets.map(() => []); this.rawBarDataPost = cleanAssets.map(() => []);
+                        const historyMap = {};
+                        this.history.forEach(h => {
+                            const m = String(h.수령일자).substring(0, 7); 
+                            if(!historyMap[m]) historyMap[m] = {};
+                            historyMap[m][h.자산이름] = (historyMap[m][h.자산이름] || 0) + this.parseMoney(h.수령금액);
+                        });
+                        this.fullLabels.forEach(lbl => {
+                            cleanAssets.forEach((a, idx) => {
+                                const val = historyMap[lbl] && historyMap[lbl][a.이름] ? historyMap[lbl][a.이름] : 0;
+                                this.rawBarData[idx].push(val / 10000); this.rawBarDataPost[idx].push(val / 10000);
+                            });
+                        });
+                        this.rawLineData = []; this.chartOffset = Math.max(0, this.fullLabels.length - this.monthsPerView);
+                    } else {
+                        this.fullLabels = this.generateLabelsFromStrategy();
+                        const cleanAssets = JSON.parse(JSON.stringify(this.assets));
+                        const cleanStrategies = JSON.parse(JSON.stringify(this.strategies));
+                        this.rawBarData = cleanAssets.map(() => []); this.rawBarDataPost = cleanAssets.map(() => []);
+                        this.rawLineData = [];
+                        let bal = cleanAssets.reduce((sum, a) => {
+                             if(a.유형 === '국민연금') return sum;
+                             return sum + this.getAssetValue(a); 
+                        }, 0);
+                        const rate = parseFloat(this.settings.returnRate) || 4.0;
+                        let sY, sM; 
+                        const startP = this.fullLabels[0].split('-');
+                        sY = parseInt(startP[0]); sM = parseInt(startP[1]) - 1;
+                        this.fullLabels.forEach((_, i) => {
+                            let d = new Date(sY, sM + i); const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
+                            const strat = cleanStrategies.find(s => String(s.시작연월) <= dStr && String(s.종료연월) >= dStr);
+                            let out = 0;
+                            cleanAssets.forEach((a, idx) => {
+                                let valPre = 0;
+                                if (strat && strat.assets && strat.assets[a.이름] !== undefined) { valPre = this.parseMoney(strat.assets[a.이름]); } 
+                                else { const status = String(a.상태 || "").trim(); const isStarted = !a.개시연월 || String(a.개시연월) <= dStr; if ((status === '수령중' || status === '보류/거치') && isStarted) { valPre = this.parseMoney(a.수령액_세전); } }
+                                let valPost = 0; const manualPost = this.parseMoney(a.수령액_세후); if (manualPost > 0) { if (strat) valPost = valPre * 0.945; else valPost = manualPost; } else { valPost = valPre * 0.945; }
+                                this.rawBarData[idx].push(valPre / 10000); this.rawBarDataPost[idx].push(valPost / 10000);
+                                if (a.유형 !== '국민연금') out += valPre;
+                            });
+                            bal = bal * (1 + rate / 1200) - out; const balMan = Math.round(Math.max(0, bal) / 10000); this.rawLineData.push(balMan);
+                        });
+                    }
+                },
+
+                saveLocal() { localStorage.setItem('pensiontalk_v2', JSON.stringify({ a: this.assets, s: this.strategies, h: this.history, st: this.settings, m: this.monthsPerView })); },
+                loadLocal() { const d = JSON.parse(localStorage.getItem('pensiontalk_v2') || '{}'); if (d.a) this.assets = d.a; if (d.s) this.strategies = d.s; if (d.h) this.history = d.h; if (d.st) this.settings = d.st; if (d.m) this.monthsPerView = d.m; },
+                
+                openAssetModal(a = null) { this.modalMode = a ? 'edit' : 'add'; this.form = a ? JSON.parse(JSON.stringify(a)) : { 아이디: Date.now().toString(), 유형: '개인연금', 이름: '', 상태: '납입중', 평가금액: 0, 비과세원금: 0, 이연퇴직소득: 0, 세액공제원금: 0 }; this.showModal = true; },
+                
+                saveAsset() { 
+                    if (!this.form.이름) return alert("별칭 필수"); this.form.평가금액 = this.getAssetValue(this.form);
+                    ['수령액_세전', '수령액_세후', '비과세원금', '이연퇴직소득', '세액공제원금', '평가금액', '수령기간'].forEach(k => {
+                        if (this.form[k] === undefined || this.form[k] === null || this.form[k] === "") { this.form[k] = 0; } else { this.form[k] = Number(this.form[k]); }
+                    });
+                    if (this.form.운용수익포함 === undefined || this.form.운용수익포함 === null) { this.form.운용수익포함 = false; }
+                    if (!this.form.운용수익포함 && this.form.수령기간 > 0 && this.form.수령액_세전 > 0) { this.form.평가금액 = this.form.수령액_세전 * 12 * this.form.수령기간; }
+                    const idx = this.assets.findIndex(a => a.아이디 === this.form.아이디); if (idx >= 0) this.assets[idx] = { ...this.form }; else this.assets.push({ ...this.form }); 
+                    this.saveLocal(); this.showModal = false; fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveAsset', data: this.form }) }); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout());
+                },
+                deleteAsset() { this.assets = this.assets.filter(a => a.아이디 !== this.form.아이디); this.saveLocal(); this.showModal = false; fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteAsset', data: this.form }) }); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); },
+                addStrategy() { const empty = {}; this.assets.forEach(a => empty[a.이름] = 0); this.strategies.push({ 아이디: Date.now().toString(), 시작연월: '', 종료연월: '', assets: empty }); },
+                saveStrategy(s) { 
+                    const cleanAssets = {}; this.assets.forEach(a => { cleanAssets[a.이름] = this.parseMoney(s.assets[a.이름]) || 0; });
+                    const strategyToSend = { ...s, assets: cleanAssets };
+                    this.saveLocal(); fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveStrategy', data: strategyToSend }) }); this.preCalculateData(); this.drawChart(); 
+                },
+                deleteStrategy(id) { this.strategies = this.strategies.filter(s => s.아이디 !== id); this.saveLocal(); this.preCalculateData(); this.drawChart(); },
+                addHistory() { const h = { ...this.historyForm, 아이디: Date.now().toString() }; this.history.push(h); this.saveLocal(); fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveHistory', data: h }) }); this.historyYear = h.수령일자.substring(0, 4); this.preCalculateData(); this.drawChart(); },
+                deleteHistory(id) { this.history = this.history.filter(h => h.아이디 !== id); this.saveLocal(); this.preCalculateData(); this.drawChart(); },
+                saveSettings() { this.saveLocal(); fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: this.settings }) }); this.preCalculateData(); this.drawChart(); },
+                saveHelp() { this.isHelpEditing = false; this.saveSettings(); },
+                sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
+                resetFullData() { localStorage.clear(); location.reload(); }
+            }
+        });
+        app.config.errorHandler = (err) => { document.getElementById('critical-error').style.display = 'block'; document.getElementById('critical-error').innerHTML += "🔴 VUE ERROR: " + err.message + "\n"; console.error(err); };
+        app.mount('#app');
+    </script>
+</body>
+</html>
