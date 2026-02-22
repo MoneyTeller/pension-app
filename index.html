@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v220)</title>
+    <title>PensionTalk V2.0 (v221)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -195,14 +195,14 @@
                     <div v-for="s in strategies" :key="s.아이디" class="bg-white border rounded-3xl p-4 shadow-sm relative">
                         <button @click="deleteStrategy(s.아이디, $event)" class="absolute top-4 right-4 text-slate-200 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button>
                         <div class="flex gap-3 mb-3">
-                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-0.5">시작</label><input type="month" v-model="s.시작연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
-                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-0.5">종료</label><input type="month" v-model="s.종료연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
+                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-0.5 uppercase">시작</label><input type="month" v-model="s.시작연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
+                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-0.5 uppercase">종료</label><input type="month" v-model="s.종료연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
                         </div>
                         <div class="grid grid-cols-5 gap-3 items-center border-t pt-3">
                             <div class="col-span-3"><label class="text-[10px] font-black text-slate-400 block mb-0.5">자산 선택</label><select v-model="s.자산명" class="w-full border-b font-black p-1 text-sm outline-none bg-transparent"><option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option></select></div>
                             <div class="col-span-2"><label class="text-[10px] font-black text-slate-400 block mb-0.5 text-right">월 인출액</label><input type="number" v-model.number="s.인출금액" @input="riskTick++" class="w-full text-right text-sm font-black border-b p-1 outline-none"></div>
                         </div>
-                        <button @click="saveStrategy(s, $event)" class="w-full mt-4 bg-indigo-50 text-indigo-700 py-2.5 rounded-xl text-sm font-black">저장하기</button>
+                        <button @click="saveStrategy(s, $event)" class="w-full mt-4 bg-indigo-50 text-indigo-700 py-2.5 rounded-xl text-sm font-black transition-all duration-300">저장하기</button>
                     </div>
                     <button @click="addStrategy" class="w-full py-5 border-2 border-dashed border-slate-200 text-slate-400 rounded-3xl font-black text-sm hover:bg-white transition">+ 전략 추가</button>
                 </div>
@@ -220,7 +220,7 @@
                             <select v-model="historyForm.자산이름" class="form-input text-xs"><option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option></select>
                         </div>
                         <input type="number" v-model.number="historyForm.수령금액" class="form-input font-black text-indigo-600 text-xl" placeholder="원 단위 입력">
-                        <button @click="addHistory($event)" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-black text-sm">기록 저장</button>
+                        <button @click="addHistory($event)" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-black text-sm transition-all duration-300">기록 저장</button>
                     </div>
                 </div>
                 <div class="p-2 space-y-1.5" :style="{ paddingTop: padHistory + 'px' }">
@@ -237,7 +237,12 @@
                     <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">생년월일</label><input v-model="settings.birthDate" type="date" class="w-40 border rounded p-1 text-right font-bold text-sm"></div>
                     <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">화면 표시 개월 수</label><input v-model.number="monthsPerView" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
                     <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">예상 연 투자수익률 (%)</label><input v-model.number="settings.returnRate" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm" step="0.1"></div>
-                    <div class="border-t pt-4 space-y-3"><h3 class="text-sm font-black text-indigo-800 uppercase mb-1">리스크 한도 기준</h3><div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">연금 금융소득 한도(만)</label><input v-model.number="settings.taxLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div><div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">피부양자 탈락 기준(만)</label><input v-model.number="settings.healthLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div><div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px] text-orange-600">기타 금융 소득(만)</label><input v-model.number="settings.otherIncome" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div></div>
+                    <div class="border-t pt-4 space-y-3">
+                        <h3 class="text-sm font-black text-indigo-800 uppercase mb-1">리스크 한도 기준</h3>
+                        <div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">연금 금융소득 한도(만)</label><input v-model.number="settings.taxLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
+                        <div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">피부양자 탈락 기준(만)</label><input v-model.number="settings.healthLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
+                        <div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px] text-orange-600">기타 금융 소득(만)</label><input v-model.number="settings.otherIncome" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
+                    </div>
                     <button @click="saveSettings($event)" class="w-full bg-indigo-900 text-white py-3.5 rounded-xl font-black shadow-xl text-base transition-all duration-300">설정 저장</button>
                     <button @click="showHelpModal = true" class="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-bold mt-1 text-sm border border-blue-100 shadow-sm"><i class="fa-solid fa-book-open mr-2"></i>도움말</button>
                     <button @click="resetFullData" class="w-full text-red-400 text-[11px] font-bold underline pt-2 text-center">전체 데이터 초기화</button>
@@ -292,7 +297,15 @@
         <div v-if="showLogModal" class="modal-overlay" @click.self="showLogModal = false">
             <div class="modal-container">
                 <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">최근 잔액 변동 기록</h3><button @click="showLogModal = false" class="text-slate-300 text-2xl">&times;</button></div>
-                <div class="modal-body"><button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button><div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div><div v-for="log in logs" :key="log.date" class="log-item"><div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div><div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div><p class="log-detail">{{ log.detail }}</p></div></div>
+                <div class="modal-body">
+                    <button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button>
+                    <div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div>
+                    <div v-for="log in logs" :key="log.date" class="log-item">
+                        <div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div>
+                        <div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div>
+                        <p class="log-detail">{{ log.detail }}</p>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -302,6 +315,7 @@
                 <div class="modal-body"><textarea v-if="isHelpEditing" v-model="settings.helpContent" class="help-editor" placeholder="여기에 도움말을 입력하세요."></textarea><div v-else class="help-content" v-text="settings.helpContent"></div></div>
             </div>
         </div>
+
     </div>
 
     <script>
@@ -355,7 +369,7 @@
                     let targetY, targetM;
                     if (targetStr.includes('.')) { const p = targetStr.split('.'); targetY = 2000 + parseInt(p[0]); targetM = parseInt(p[1]); } 
                     else { const p = targetStr.split('-'); targetY = parseInt(p[0]); targetM = parseInt(p[1]); }
-                    const baseDate = new Date(2026, 1, 1); const targetDate = new Date(targetY, targetM - 1, 1);
+                    const baseDate = new Date(); const targetDate = new Date(targetY, targetM - 1, 1);
                     const monthsToTarget = (targetDate.getFullYear() - baseDate.getFullYear()) * 12 + (targetDate.getMonth() - baseDate.getMonth());
                     const rate = parseFloat(this.settings.returnRate) || 6.0; const monthlyRate = rate / 12 / 100;
                     return this.assets.filter(a => a.유형 !== '국민연금').map(a => {
@@ -373,6 +387,7 @@
                     }).filter(x => x);
                 },
                 dynamicTotalAssets() { return this.dynamicNatureBreakdown.reduce((s,i) => s + (i ? i.total : 0), 0); },
+                // v221 리스크 엔진: 국민연금 50% 산정 및 지능형 문구
                 currentStrategyRisks() {
                     this.riskTick; const dateStr = this.stratSliderDate; if(!dateStr) return [];
                     let year; if (dateStr.includes('.')) { year = 2000 + parseInt(dateStr.split('.')[0]); } else { year = parseInt(dateStr.split('-')[0]); }
@@ -397,11 +412,7 @@
                 availableYears() { const yrs = new Set(); yrs.add(new Date().getFullYear().toString()); this.history.forEach(h => { if(h.수령일자) yrs.add(String(h.수령일자).substring(0, 4)); }); return Array.from(yrs).sort((a,b)=>b-a); },
                 historyYearTotal() { return this.filteredHistory.reduce((s, h) => s + this.parseMoney(h.수령금액), 0); },
                 currentViewAxis() { 
-                    if(!this.fullLabels.length) return []; 
-                    const start = this.chartOffset; 
-                    const end = Math.min(start + this.monthsPerView, this.fullLabels.length); 
-                    const labs = this.fullLabels.slice(start, end); 
-                    while(labs.length < this.monthsPerView) labs.push(''); 
+                    if(!this.fullLabels.length) return []; const start = this.chartOffset; const end = Math.min(start + this.monthsPerView, this.fullLabels.length); const labs = this.fullLabels.slice(start, end); while(labs.length < this.monthsPerView) labs.push(''); 
                     return labs.map((l, i) => { if(!l) return { year: '', month: '', showYear: false }; const parts = l.split('-'); const y = parts[0].slice(2), m = String(Number(parts[1])); return { year: y, month: m, showYear: (i === 0) || (m === '1') }; }); 
                 }
             },
@@ -486,7 +497,7 @@
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
-                // v220 홈 그래프 시작월: 무조건 현재 연월 고정 로직
+                // v221 홈 그래프 날짜 축: 항상 현재 연월부터 고정
                 generateLabelsFromStrategy() {
                     const now = new Date(); const labs = [];
                     for(let i=0; i<120; i++) {
