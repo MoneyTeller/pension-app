@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217-3)</title>
+    <title>PensionTalk V2.0 (v217-4)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -609,10 +609,29 @@
                 async deleteStrategy(id, e) { if(!confirm("삭제하시겠습니까?")) return; this.strategies = this.strategies.filter(s => s.아이디 !== id); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteStrategy', data: { 아이디: id } }) }); this.preCalculateData(); },
                 async addHistory(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); const h = { ...this.historyForm, 아이디: Date.now().toString() }; if(!this.history) this.history = []; this.history.push(h); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveHistory', data: h }) }); this.preCalculateData(); this.restoreBtnFeedback(fb); },
                 async deleteHistory(id, e) { if(!confirm("삭제하시겠습니까?")) return; this.history = this.history.filter(h => h.아이디 !== id); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteHistory', data: { 아이디: id } }) }); this.preCalculateData(); },
-                async saveSettings(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: this.settings }) }); this.preCalculateData(); this.restoreBtnFeedback(fb); },
+                async saveSettings(e) {
+    const fb = await this.applyBtnFeedback(e, "저장 중...");
+    
+    // 시트의 항목명과 일치하도록 키값을 구성하여 전달해야 합니다.
+    const settingsPayload = {
+        ...this.settings,
+        "monthsPerView": this.monthsPerView  // 누락된 화면 표시 개월 수 추가
+    };
+    
+    this.saveLocal();
+    await fetch(GAS_API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ op: 'saveSettings', data: settingsPayload }) 
+    });
+    
+    this.preCalculateData();
+    this.restoreBtnFeedback(fb);
+},
                 saveHelp() { this.isHelpEditing = false; this.saveSettings({ target: { closest: () => ({ innerText: '저장', disabled: false, style: {} }) } }); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
-                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
+                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); if (row.항목 === 'monthsPerView') {
+            this.monthsPerView = parseInt(row.값) || 8;
+        }; this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
                 resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
             },
             mounted() { this.loadLocal(); this.fetchData(); window.addEventListener('resize', this.updateLayout); }
