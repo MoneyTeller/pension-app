@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#3730a3">
-    <title>PensionTalk V2.0 (v215)</title>
+    <title>PensionTalk V2.0 (v216)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -153,7 +150,7 @@
                     <h2 class="font-black text-xl text-slate-700">연금 인벤토리</h2>
                     <div class="flex gap-2">
                         <button @click="openLogModal" class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-sm font-bold border"><i class="fa-solid fa-list-ul"></i> 기록</button>
-                        <button @click="openAssetModal()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-100">+ 추가</button>
+                        <button @click="openAssetModal()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-xl text-sm font-bold shadow-lg">+ 추가</button>
                     </div>
                 </div>
                 <div class="p-2 space-y-1" :style="{ paddingTop: padAssets + 'px' }">
@@ -210,19 +207,25 @@
                 </div>
                 
                 <div class="p-2 space-y-1.5" :style="{ paddingTop: padStrat + 'px' }">
-                    <div v-for="s in strategies" :key="s.아이디" class="bg-white border rounded-3xl p-3.5 shadow-sm relative">
-                        <button @click="deleteStrategy(s.아이디)" class="absolute top-4 right-4 text-slate-200 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button>
-                        <div class="flex gap-4 mb-2">
-                            <div class="flex-1"><label class="text-[11px] font-black text-slate-400 block mb-1 uppercase">시작</label><input type="month" v-model="s.시작연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
-                            <div class="flex-1"><label class="text-[11px] font-black text-slate-400 block mb-1 uppercase">종료</label><input type="month" v-model="s.종료연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
+                    <div v-for="s in strategies" :key="s.아이디" class="bg-white border rounded-3xl p-4 shadow-sm relative">
+                        <button @click="deleteStrategy(s.아이디, $event)" class="absolute top-4 right-4 text-slate-200 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+                        <div class="flex gap-3 mb-3">
+                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-0.5">시작</label><input type="month" v-model="s.시작연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
+                            <div class="flex-1"><label class="text-[10px] font-black text-slate-400 block mb-0.5">종료</label><input type="month" v-model="s.종료연월" class="w-full border-b font-black p-1 text-sm outline-none"></div>
                         </div>
-                        <div class="space-y-1 border-t pt-2.5">
-                            <div v-for="a in assets" :key="a.이름" class="flex justify-between items-center mb-1.5">
-                                <span class="text-[13px] font-black text-slate-500 truncate w-32">{{ a.이름 }}</span>
-                                <div class="flex items-center gap-1"><input type="number" v-model.number="s.assets[a.이름]" @input="riskTick++" class="w-28 text-right text-sm font-black border-b p-0.5 outline-none" placeholder="0"></div>
+                        <div class="grid grid-cols-5 gap-3 items-center border-t pt-3">
+                            <div class="col-span-3">
+                                <label class="text-[10px] font-black text-slate-400 block mb-0.5">자산 선택</label>
+                                <select v-model="s.자산명" class="w-full border-b font-black p-1 text-sm outline-none bg-transparent">
+                                    <option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-[10px] font-black text-slate-400 block mb-0.5 text-right">월 인출액</label>
+                                <input type="number" v-model.number="s.인출금액" @input="riskTick++" class="w-full text-right text-sm font-black border-b p-1 outline-none" placeholder="0">
                             </div>
                         </div>
-                        <button @click="saveStrategy(s, $event)" class="w-full mt-3 bg-indigo-50 text-indigo-700 py-2.5 rounded-xl text-sm font-black transition-all duration-300">저장</button>
+                        <button @click="saveStrategy(s, $event)" class="w-full mt-4 bg-indigo-50 text-indigo-700 py-2.5 rounded-xl text-sm font-black transition-all">저장하기</button>
                     </div>
                     <button @click="addStrategy" class="w-full py-5 border-2 border-dashed border-slate-200 text-slate-400 rounded-3xl font-black text-sm hover:bg-white transition">+ 전략 추가</button>
                 </div>
@@ -242,21 +245,16 @@
                     <div class="bg-white border rounded-2xl p-4 shadow-sm space-y-2">
                         <div class="grid grid-cols-2 gap-2">
                             <input type="date" v-model="historyForm.수령일자" class="form-input text-xs">
-                            <select v-model="historyForm.자산이름" class="form-input text-xs">
-                                <option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option>
-                            </select>
+                            <select v-model="historyForm.자산이름" class="form-input text-xs"><option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option></select>
                         </div>
                         <input type="number" v-model.number="historyForm.수령금액" class="form-input font-black text-indigo-600 text-xl" placeholder="원 단위 입력">
-                        <button @click="addHistory($event)" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-black text-sm transition-all duration-300">기록 저장</button>
+                        <button @click="addHistory($event)" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-black text-sm">기록 저장</button>
                     </div>
                 </div>
                 <div class="p-2 space-y-1.5" :style="{ paddingTop: padHistory + 'px' }">
                     <div v-for="h in filteredHistory" :key="h.아이디" class="bg-white border p-3.5 rounded-2xl flex justify-between items-center shadow-sm">
                         <div><div class="text-[11px] text-slate-300 font-bold mb-0.5">{{ String(h.수령일자).substring(0,10) }}</div><div class="text-[16px] font-bold text-slate-700">{{ h.자산이름 }}</div></div>
-                        <div class="flex items-center gap-4">
-                            <div class="text-indigo-600 font-black text-lg">{{ parseMoney(h.수령금액).toLocaleString() }}원</div>
-                            <button @click="deleteHistory(h.아이디, $event)" class="text-slate-200 hover:text-red-400 transition-colors"><i class="fa-solid fa-circle-xmark"></i></button>
-                        </div>
+                        <div class="flex items-center gap-4"><div class="text-indigo-600 font-black text-lg">{{ parseMoney(h.수령금액).toLocaleString() }}원</div><button @click="deleteHistory(h.아이디, $event)" class="text-slate-200 hover:text-red-400"><i class="fa-solid fa-circle-xmark"></i></button></div>
                     </div>
                 </div>
             </div>
@@ -264,34 +262,11 @@
             <div v-show="activeTab === 'settings'" class="p-2 space-y-2" style="padding-top: 60px;">
                 <h2 class="font-black text-xl text-slate-700 px-2">환경 설정</h2>
                 <div class="bg-white border rounded-3xl p-4 space-y-4">
-                    <div class="flex justify-between items-center py-0.5">
-                        <label class="font-black text-indigo-800 uppercase text-[12px]">생년월일</label>
-                        <input v-model="settings.birthDate" type="date" class="w-40 border rounded p-1 text-right font-bold text-sm">
-                    </div>
-                    <div class="flex justify-between items-center py-0.5">
-                        <label class="font-black text-indigo-800 uppercase text-[12px]">화면 표시 개월 수</label>
-                        <input v-model.number="monthsPerView" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm">
-                    </div>
-                    <div class="flex justify-between items-center py-0.5">
-                        <label class="font-black text-indigo-800 uppercase text-[12px]">예상 연 투자수익률 (%)</label>
-                        <input v-model.number="settings.returnRate" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm" step="0.1">
-                    </div>
-                    <div class="border-t pt-4 space-y-3">
-                        <h3 class="text-sm font-black text-indigo-800 tracking-widest uppercase mb-1">리스크 한도 기준</h3>
-                        <div class="flex justify-between items-center py-0.5">
-                            <label class="font-bold text-[12px] uppercase">종합과세 한도(만원)</label>
-                            <input v-model.number="settings.taxLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm">
-                        </div>
-                        <div class="flex justify-between items-center py-0.5">
-                            <label class="font-bold text-[12px] uppercase">건보료 피부양자(만원)</label>
-                            <input v-model.number="settings.healthLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm">
-                        </div>
-                        <div class="flex justify-between items-center py-0.5">
-                            <label class="font-bold text-[12px] text-orange-600">기타 금융 소득(만원)</label>
-                            <input v-model.number="settings.otherIncome" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm" placeholder="0">
-                        </div>
-                    </div>
-                    <button @click="saveSettings($event)" class="w-full bg-indigo-900 text-white py-3.5 rounded-xl font-black shadow-xl text-base transition-all duration-300">설정 저장</button>
+                    <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">생년월일</label><input v-model="settings.birthDate" type="date" class="w-40 border rounded p-1 text-right font-bold text-sm"></div>
+                    <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">화면 표시 개월 수</label><input v-model.number="monthsPerView" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
+                    <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">예상 연 투자수익률 (%)</label><input v-model.number="settings.returnRate" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm" step="0.1"></div>
+                    <div class="border-t pt-4 space-y-3"><h3 class="text-sm font-black text-indigo-800 uppercase mb-1">리스크 한도 기준</h3><div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">종합과세 한도(만원)</label><input v-model.number="settings.taxLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div><div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">건보료 피부양자(만원)</label><input v-model.number="settings.healthLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div><div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px] text-orange-600">기타 금융 소득(만원)</label><input v-model.number="settings.otherIncome" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm" placeholder="0"></div></div>
+                    <button @click="saveSettings($event)" class="w-full bg-indigo-900 text-white py-3.5 rounded-xl font-black shadow-xl text-base">설정 저장</button>
                     <button @click="showHelpModal = true" class="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-bold mt-1 text-sm border border-blue-100 shadow-sm"><i class="fa-solid fa-book-open mr-2"></i>도움말</button>
                     <button @click="resetFullData" class="w-full text-red-400 text-[11px] font-bold underline pt-2 text-center">전체 데이터 초기화</button>
                 </div>
@@ -312,82 +287,15 @@
                 <div class="modal-body space-y-5">
                     <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">종류</label><select v-model="form.유형" class="form-input font-black text-indigo-900"><option>국민연금</option><option>개인연금</option><option>퇴직연금(IRP)</option></select></div>
                     <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">별칭</label><input v-model="form.이름" class="form-input font-black"></div>
-                    <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">상태</label>
-                        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
-                            <button v-for="s in ['납입중', '보류/거치', '수령중']" @click="form.상태 = s" :class="form.상태 === s ? 'bg-white text-indigo-600 shadow' : 'text-slate-400'" class="flex-1 py-2 text-xs font-black rounded-lg transition">{{ s }}</button>
-                        </div>
-                    </div>
-                    <div class="bg-slate-50 p-3 rounded-xl border space-y-3 shadow-inner">
-                        <div v-if="(form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && form.상태 !== '납입중'"><label class="flex items-center text-xs font-black text-indigo-800 cursor-pointer"><input type="checkbox" v-model="form.투자운용형" class="mr-2 w-4 h-4">투자 운용형 (ETF/펀드)</label></div>
-                        <div v-if="form.유형 !== '국민연금'">
-                            <div v-if="form.상태 === '수령중' && (form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && !form.투자운용형" class="bg-indigo-100 p-3 rounded-xl text-indigo-700 text-xs font-black border border-indigo-200 italic tracking-tighter">보험형 수령 중: 잔고 자동 계산됨</div>
-                            <div v-else><label class="uppercase text-[11px] font-black text-slate-400 block mb-1">현재 보유액 (원)</label><input type="number" v-model.number="form.평가금액" @input="calculateAutomaticValues" class="form-input font-black text-indigo-600 text-xl border-indigo-100"></div>
-                        </div>
-                        <div class="space-y-2.5 border-t pt-3">
-                             <div class="flex justify-between items-center gap-2">
-                                <span class="text-[12px] font-black text-slate-500 w-24">비과세 원금</span>
-                                <input v-model.number="form.비과세원금" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 text-right text-sm font-bold bg-transparent outline-none">
-                                <div class="flex items-center w-18"><input v-model.number="form.비과세원금_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-slate-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div>
-                             </div>
-                             <div class="flex justify-between items-center gap-2">
-                                <span class="text-[12px] font-black text-slate-500 w-24">이연퇴직소득</span>
-                                <input v-model.number="form.이연퇴직소득" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 text-right text-sm font-bold bg-transparent outline-none">
-                                <div class="flex items-center w-18"><input v-model.number="form.이연퇴직소득_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-slate-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div>
-                             </div>
-                             <div class="flex justify-between items-center gap-2">
-                                <span class="text-[12px] font-black text-orange-500 w-24">세액공제 원금</span>
-                                <input v-model.number="form.세액공제원금" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 border-orange-200 text-right text-sm font-bold bg-transparent outline-none">
-                                <div class="flex items-center w-18"><input v-model.number="form.세액공제원금_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-orange-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div>
-                             </div>
-                             <div class="flex justify-between items-center gap-2">
-                                <span class="text-[12px] font-black text-emerald-600 w-24">운용 수익</span>
-                                <input v-model.number="form.운용수익" type="number" class="flex-1 border-b-2 border-emerald-200 text-right text-sm font-bold bg-slate-50 outline-none" readonly>
-                                <div class="flex items-center w-18"><input v-model.number="form.운용수익_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-emerald-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div>
-                             </div>
-                             <div class="flex justify-between items-center gap-2">
-                                <span class="text-[12px] font-black text-indigo-600 w-24">보험 잔고</span>
-                                <input v-model.number="form.보험잔고" type="number" class="flex-1 border-b-2 border-indigo-200 text-right text-sm font-bold bg-slate-50 outline-none" readonly>
-                                <div class="flex items-center w-18"><input v-model.number="form.보험잔고_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-indigo-500 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div>
-                             </div>
-                        </div>
-                    </div>
-                    <div v-if="form.상태 !== '납입중'" class="bg-indigo-50 p-4 rounded-xl space-y-4 border border-indigo-100 shadow-sm">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="text-[11px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">개시 연월일</label><input v-model="form.개시연월" type="date" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none focus:border-indigo-500 transition"></div>
-                            <div v-if="form.유형 !== '국민연금'"><label class="text-[11px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">수령 기간(년)</label><input v-model.number="form.수령기간" type="number" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none"></div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="text-[11px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">월 수령(세전)</label><input v-model.number="form.수령액_세전" type="number" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black text-right outline-none"></div>
-                            <div><label class="text-[11px] font-black text-indigo-400 uppercase tracking-tighter block mb-1">월 수령(세후)</label><input v-model.number="form.수령액_세후" type="number" class="w-full border-b-2 border-indigo-200 bg-transparent font-black text-right outline-none"></div>
-                        </div>
-                    </div>
+                    <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">상태</label><div class="flex gap-1 bg-slate-100 p-1 rounded-xl"><button v-for="s in ['납입중', '보류/거치', '수령중']" @click="form.상태 = s" :class="form.상태 === s ? 'bg-white text-indigo-600 shadow' : 'text-slate-400'" class="flex-1 py-2 text-xs font-black rounded-lg">{{ s }}</button></div></div>
+                    <div class="bg-slate-50 p-3 rounded-xl border space-y-3 shadow-inner"><div v-if="(form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && form.상태 !== '납입중'"><label class="flex items-center text-xs font-black text-indigo-800 cursor-pointer"><input type="checkbox" v-model="form.투자운용형" class="mr-2 w-4 h-4">투자 운용형 (ETF/펀드)</label></div><div v-if="form.유형 !== '국민연금'"><div v-if="form.상태 === '수령중' && (form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && !form.투자운용형" class="bg-indigo-100 p-3 rounded-xl text-indigo-700 text-xs font-black border border-indigo-200 italic tracking-tighter">보험형 수령 중: 잔고 자동 계산됨</div><div v-else><label class="uppercase text-[11px] font-black text-slate-400 block mb-1">현재 보유액 (원)</label><input type="number" v-model.number="form.평가금액" @input="calculateAutomaticValues" class="form-input font-black text-indigo-600 text-xl border-indigo-100"></div></div><div class="space-y-2.5 border-t pt-3"><div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-slate-500 w-24">비과세 원금</span><input v-model.number="form.비과세원금" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 text-right text-sm font-bold bg-transparent outline-none"><div class="flex items-center w-18"><input v-model.number="form.비과세원금_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-slate-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div><div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-slate-500 w-24">이연퇴직소득</span><input v-model.number="form.이연퇴직소득" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 text-right text-sm font-bold bg-transparent outline-none"><div class="flex items-center w-18"><input v-model.number="form.이연퇴직소득_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-slate-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div><div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-orange-500 w-24">세액공제 원금</span><input v-model.number="form.세액공제원금" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 border-orange-200 text-right text-sm font-bold bg-transparent outline-none"><div class="flex items-center w-18"><input v-model.number="form.세액공제원금_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-orange-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div><div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-emerald-600 w-24">운용 수익</span><input v-model.number="form.운용수익" type="number" class="flex-1 border-b-2 border-emerald-200 text-right text-sm font-bold bg-slate-50 outline-none" readonly><div class="flex items-center w-18"><input v-model.number="form.운용수익_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-emerald-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div><div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-indigo-600 w-24">보험 잔고</span><input v-model.number="form.보험잔고" type="number" class="flex-1 border-b-2 border-indigo-200 text-right text-sm font-bold bg-slate-50 outline-none" readonly><div class="flex items-center w-18"><input v-model.number="form.보험잔고_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-indigo-500 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div></div></div>
+                    <div v-if="form.상태 !== '납입중'" class="bg-indigo-50 p-4 rounded-xl space-y-4 border border-indigo-100 shadow-sm"><div class="grid grid-cols-2 gap-4"><div><label class="text-[11px] font-black text-indigo-400 block mb-1">개시 연월일</label><input v-model="form.개시연월" type="date" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none focus:border-indigo-500 transition"></div><div v-if="form.유형 !== '국민연금'"><label class="text-[11px] font-black text-indigo-400 block mb-1">수령 기간(년)</label><input v-model.number="form.수령기간" type="number" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none"></div></div><div class="grid grid-cols-2 gap-4"><div><label class="text-[11px] font-black text-indigo-400 block mb-1">월 수령(세전)</label><input v-model.number="form.수령액_세전" type="number" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black text-right outline-none"></div><div><label class="text-[11px] font-black text-indigo-400 block mb-1">월 수령(세후)</label><input v-model.number="form.수령액_세후" type="number" class="w-full border-b-2 border-indigo-200 bg-transparent font-black text-right outline-none"></div></div></div>
                 </div>
-                <div class="modal-footer flex gap-3 shrink-0"><button v-if="modalMode==='edit'" @click="deleteAsset($event)" class="flex-1 py-4 border rounded-2xl text-red-400 font-black text-sm transition-all duration-300">삭제</button><button @click="saveAsset($event)" class="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg text-sm transition-all duration-300">저장하기</button></div>
+                <div class="modal-footer flex gap-3 shrink-0"><button v-if="modalMode==='edit'" @click="deleteAsset($event)" class="flex-1 py-4 border rounded-2xl text-red-400 font-black text-sm">삭제</button><button @click="saveAsset($event)" class="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg text-sm">저장하기</button></div>
             </div>
         </div>
 
-        <div v-if="showLogModal" class="modal-overlay" @click.self="showLogModal = false">
-            <div class="modal-container">
-                <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">최근 잔액 변동 기록</h3><button @click="showLogModal = false" class="text-slate-300 text-2xl">&times;</button></div>
-                <div class="modal-body">
-                    <button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button>
-                    <div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div>
-                    <div v-for="log in logs" :key="log.date" class="log-item">
-                        <div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div>
-                        <div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div>
-                        <p class="log-detail">{{ log.detail }}</p>
-                    </div>
-                </div>
-            </div>
         </div>
-        
-        <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false">
-            <div class="modal-container">
-                <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">주요 세법 및 제도 안내</h3><div class="flex items-center gap-3"><button v-if="!isHelpEditing" @click="isHelpEditing = true" class="text-slate-400 hover:text-indigo-600"><i class="fa-solid fa-pen-to-square"></i></button><button v-if="isHelpEditing" @click="saveHelp" class="text-emerald-500 font-bold text-xs">저장</button><button @click="showHelpModal = false" class="text-slate-300 text-2xl ml-2">&times;</button></div></div>
-                <div class="modal-body"><textarea v-if="isHelpEditing" v-model="settings.helpContent" class="help-editor" placeholder="여기에 도움말을 입력하세요."></textarea><div v-else class="help-content" v-text="settings.helpContent"></div></div>
-            </div>
-        </div>
-    </div>
 
     <script>
         const GAS_API_URL = "/api/proxy";
@@ -430,10 +338,7 @@
                    const labels = this.generateLabelsFromStrategy();
                    if(!labels.length) {
                        const now = new Date(); let sY = now.getFullYear(), sM = now.getMonth();
-                       for(let i=0; i<120; i++) { 
-                           let d = new Date(sY, sM + i); 
-                           labels.push(this.formatShortDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)); 
-                       }
+                       for(let i=0; i<120; i++) { let d = new Date(sY, sM + i); labels.push(this.formatShortDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)); }
                    }
                    return labels;
                 },
@@ -451,15 +356,13 @@
                     const rate = parseFloat(this.settings.returnRate) || 4.0;
                     const monthlyRate = rate / 12 / 100;
                     return this.assets.filter(a => a.유형 !== '국민연금').map(a => {
-                        let v1 = this.parseMoney(a.비과세원금), v2 = this.parseMoney(a.이연퇴직소득), v3 = this.parseMoney(a.세액공제원금);
-                        let v4 = this.parseMoney(a.운용수익), v5 = this.parseMoney(a.보험잔고);
+                        let v1 = this.parseMoney(a.비과세원금), v2 = this.parseMoney(a.이연퇴직소득), v3 = this.parseMoney(a.세액공제원금), v4 = this.parseMoney(a.운용수익), v5 = this.parseMoney(a.보험잔고);
                         for (let i = 0; i <= monthsToTarget; i++) {
                             const cur = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
                             const curYm = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`;
-                            const strat = this.strategies.find(s => s.시작연월 <= curYm && s.종료연월 >= curYm);
-                            let out = 0;
-                            if (strat && strat.assets && strat.assets[a.이름] !== undefined) out = this.parseMoney(strat.assets[a.이름]);
-                            else if (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= curYm)) out = this.parseMoney(a.수령액_세전);
+                            // [v216] 변경된 자산별 전략 참조 로직
+                            const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= curYm && s.종료연월 >= curYm);
+                            let out = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= curYm) ? this.parseMoney(a.수령액_세전) : 0);
                             if (out > 0) {
                                 let rem = out;
                                 let d1 = Math.min(v1, rem); v1 -= d1; rem -= d1;
@@ -468,10 +371,7 @@
                                 let d4 = Math.min(v4, rem); v4 -= d4; rem -= d4;
                                 let d5 = Math.min(v5, rem); v5 -= d5; rem -= d5;
                             }
-                            if (i < monthsToTarget && a.투자운용형) {
-                                let investable = v1 + v2 + v3 + v4;
-                                if (investable > 0) { let profit = investable * monthlyRate; v4 += profit; }
-                            }
+                            if (i < monthsToTarget && a.투자운용형) { let investable = v1 + v2 + v3 + v4; if (investable > 0) { let profit = investable * monthlyRate; v4 += profit; } }
                         }
                         let total = v1 + v2 + v3 + v4 + v5;
                         if (total <= 100) return null;
@@ -484,23 +384,16 @@
                         return { name: a.이름, total: total, labelParts: labelParts, p1: (v1/total)*100, p2: (v2/total)*100, p3: (v3/total)*100, p4: (v4/total)*100, p5: (v5/total)*100 };
                     }).filter(x => x);
                 },
-
                 dynamicTotalAssets() { return this.dynamicNatureBreakdown.reduce((s,i) => s + (i ? i.total : 0), 0); },
                 currentStrategyRisks() {
-                    this.riskTick;
-                    const dateStr = this.stratSliderDate;
-                    if(!dateStr) return [];
-                    let year;
-                    if (dateStr.includes('.')) { year = 2000 + parseInt(dateStr.split('.')[0]); }
-                    else { year = parseInt(dateStr.split('-')[0]); }
+                    this.riskTick; const dateStr = this.stratSliderDate; if(!dateStr) return [];
+                    let year; if (dateStr.includes('.')) { year = 2000 + parseInt(dateStr.split('.')[0]); } else { year = parseInt(dateStr.split('-')[0]); }
                     let privateSum = 0, totalSum = 0;
                     for(let m=1; m<=12; m++) {
                         const mStr = `${year}-${String(m).padStart(2,'0')}`;
-                        const strat = this.strategies.find(s => s.시작연월 <= mStr && s.종료연월 >= mStr);
                         this.assets.forEach(a => {
-                            let val = 0;
-                            if(strat && strat.assets && strat.assets[a.이름] !== undefined) val = this.parseMoney(strat.assets[a.이름]);
-                            else if (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= mStr)) val = this.parseMoney(a.수령액_세전);
+                            const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= mStr && s.종료연월 >= mStr);
+                            let val = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= mStr) ? this.parseMoney(a.수령액_세전) : 0);
                             if (a.유형 === '국민연금') totalSum += val; else { privateSum += val; totalSum += val; }
                         });
                     }
@@ -531,15 +424,6 @@
                 viewMode() { this.preCalculateData(); this.drawChart(); },
                 isPostTaxView() { this.drawChart(); }
             },
-            mounted() {
-                this.loadLocal();
-                this.fullLabels = this.generateLabelsFromStrategy();
-                if (!GAS_API_URL.includes("여기에")) { this.fetchAndProcess(); } else { this.isLoading = false; }
-                this.preCalculateData();
-                this.drawChart(); 
-                setTimeout(() => this.updateLayout(), 500);
-                window.addEventListener('resize', this.updateLayout);
-            },
             methods: {
                 handleTouchStart(e) { this.touchStartX = e.changedTouches[0].screenX; this.touchStartY = e.changedTouches[0].screenY; },
                 handleTouchEnd(e) {
@@ -551,51 +435,31 @@
                         else if (dx < 0 && idx > 0) this.activeTab = this.tabs[idx - 1];
                     }
                 },
-                // v213 시각 피드백 헬퍼 보강
-                async applyBtnFeedback(e, statusText, finishText = "완료 ✅") {
-                    const btn = e.target.closest('button');
-                    if(!btn) return null;
-                    const originalText = btn.innerText;
-                    btn.innerText = statusText;
-                    btn.disabled = true;
-                    btn.style.opacity = "0.7";
-                    return { btn, originalText, finishText };
+                async feedbackBtn(e, statusText, finishText = "완료 ✅") {
+                    const btn = e.target.closest('button'); if(!btn) return null;
+                    const orig = btn.innerText; btn.innerText = statusText; btn.disabled = true;
+                    return { btn, orig, finishText };
                 },
-                restoreBtnFeedback(fb) {
-                    if(!fb) return;
-                    fb.btn.innerText = fb.finishText;
-                    fb.btn.style.backgroundColor = "#10b981";
-                    setTimeout(() => {
-                        fb.btn.innerText = fb.originalText;
-                        fb.btn.disabled = false;
-                        fb.btn.style.opacity = "";
-                        fb.btn.style.backgroundColor = "";
-                    }, 1500);
+                restoreBtn(fb) {
+                    if(!fb) return; fb.btn.innerText = fb.finishText; fb.btn.style.backgroundColor = "#10b981";
+                    setTimeout(() => { fb.btn.innerText = fb.orig; fb.btn.disabled = false; fb.btn.style.backgroundColor = ""; }, 1500);
                 },
                 async fetchAndProcess() { await this.fetchData(); await fetch(`${GAS_API_URL}?op=processWithdrawals`); await this.fetchData(); },
                 async runWithdrawalManual() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=processWithdrawals`); const json = await res.json(); alert(json.message); await this.fetchData(); await this.fetchLogs(); } catch(e) { alert("실행 오류"); } this.isLoading = false; },
                 async fetchLogs() { try { const res = await fetch(`${GAS_API_URL}?op=getLogs`); const json = await res.json(); if (json.result === 'success') this.logs = json.data; } catch(e) { console.error("Log fetch error", e); } },
                 openLogModal() { this.fetchLogs(); this.showLogModal = true; },
                 calculateAutomaticValues() {
-                    const total = this.parseMoney(this.form.평가금액);
-                    const p1 = this.parseMoney(this.form.비과세원금), p2 = this.parseMoney(this.form.이연퇴직소득), p3 = this.parseMoney(this.form.세액공제원금);
-                    const monthly = this.parseMoney(this.form.수령액_세전);
-                    const years = this.parseMoney(this.form.수령기간);
+                    const total = this.parseMoney(this.form.평가금액), p1 = this.parseMoney(this.form.비과세원금), p2 = this.parseMoney(this.form.이연퇴직소득), p3 = this.parseMoney(this.form.세액공제원금), monthly = this.parseMoney(this.form.수령액_세전), years = this.parseMoney(this.form.수령기간);
                     if (this.form.투자운용형) { this.form.운용수익 = Math.max(0, total - (p1 + p2 + p3)); this.form.보험잔고 = 0; } 
-                    else { if (this.form.개시연월 && years > 0) { const now = new Date(2026, 1, 1); const parts = this.form.개시연월.split('-'); const startIdx = parseInt(parts[0]) * 12 + (parseInt(parts[1]) - 1); const endIdx = startIdx + (years * 12) - 1; let rem = 0; let nowIdx = now.getFullYear()*12+now.getMonth(); if (nowIdx <= startIdx) rem = years * 12; else if (nowIdx <= endIdx) rem = (endIdx - nowIdx) + 1; this.form.보험잔고 = monthly * rem; this.form.평가금액 = this.form.보험잔고; } else { this.form.보험잔고 = 0; } this.form.운용수익 = 0; }
+                    else { if (this.form.개시연월 && years > 0) { const now = new Date(2026, 1, 1), parts = this.form.개시연월.split('-'), startIdx = parseInt(parts[0]) * 12 + (parseInt(parts[1]) - 1), endIdx = startIdx + (years * 12) - 1; let rem = 0, nowIdx = now.getFullYear()*12+now.getMonth(); if (nowIdx <= startIdx) rem = years * 12; else if (nowIdx <= endIdx) rem = (endIdx - nowIdx) + 1; this.form.보험잔고 = monthly * rem; this.form.평가금액 = this.form.보험잔고; } else { this.form.보험잔고 = 0; } this.form.운용수익 = 0; }
                 },
                 async fetchData() { 
                     this.isLoading = true; 
                     try { 
-                        const res = await fetch(`${GAS_API_URL}?op=loadAll`); 
-                        const json = await res.json(); 
+                        const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); 
                         if (json.result === 'success') { 
                             this.assets = this.sanitizeData(json.data.assets || []);
-                            this.strategies = this.sanitizeData(json.data.strategies || []).map(s => {
-                                s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월);
-                                let assetObj = {}; try { if (typeof s.assets === 'object' && s.assets !== null) assetObj = s.assets; else if (typeof s.assets === 'string') assetObj = JSON.parse(s.assets.trim() || '{}'); } catch (e) { assetObj = {}; }
-                                const mergedAssets = {}; this.assets.forEach(a => mergedAssets[a.이름] = assetObj[a.이름] || 0); return { ...s, assets: mergedAssets };
-                            });
+                            this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; });
                             this.history = this.sanitizeData(json.data.history || []); 
                             if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); 
                             this.saveLocal(); this.preCalculateData(); this.drawChart(); this.isLoading = false; 
@@ -639,51 +503,25 @@
                 generateLabelsFromStrategy() { const clean = JSON.parse(JSON.stringify(this.strategies)); let min = new Date(2026, 1, 1), max = new Date(min.getFullYear() + 10, min.getMonth()); const s = clean.map(x => x.시작연월).filter(d => d).sort(), e = clean.map(x => x.종료연월).filter(d => d).sort(); if (s.length > 0) { const p = s[0].split('-'); min = new Date(p[0], p[1]-1, 1); } if (e.length > 0) { const p = e[e.length-1].split('-'); max = new Date(p[0], p[1]-1, 1); } const labs = [], total = Math.max(8, (max.getFullYear() - min.getFullYear()) * 12 + (max.getMonth() - min.getMonth()) + 1); for(let i=0; i<total; i++) labs.push(`${new Date(min.getFullYear(), min.getMonth() + i).getFullYear()}-${String(new Date(min.getFullYear(), min.getMonth() + i).getMonth()+1).padStart(2, '0')}`); return labs; },
                 preCalculateData() {
                     if (this.viewMode === 'history') { const unique = Array.from(new Set(this.history.map(h => String(h.수령일자).substring(0, 7)))).sort(); if (!unique.length) { this.fullLabels = []; this.rawBarData = []; this.rawBarDataPost = []; return; } const start = new Date(unique[0] + '-01'), end = new Date(unique[unique.length-1] + '-01'); const total = Math.max(8, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1); this.fullLabels = []; for(let i=0; i<total; i++) this.fullLabels.push(`${new Date(start.getFullYear(), start.getMonth() + i).getFullYear()}-${String(new Date(start.getFullYear(), start.getMonth() + i).getMonth()+1).padStart(2, '0')}`); this.rawBarData = this.assets.map(() => []); this.rawBarDataPost = this.assets.map(() => []); const hMap = {}; this.history.forEach(h => { const m = String(h.수령일자).substring(0, 7); if(!hMap[m]) hMap[m] = {}; hMap[m][h.자산이름] = (hMap[m][h.자산이름] || 0) + this.parseMoney(h.수령금액); }); this.fullLabels.forEach(lbl => { this.assets.forEach((a, idx) => { const val = hMap[lbl] && hMap[lbl][a.이름] ? hMap[lbl][a.이름] : 0; this.rawBarData[idx].push(val / 10000); this.rawBarDataPost[idx].push(val / 10000); }); }); this.rawLineData = []; this.chartOffset = Math.max(0, this.fullLabels.length - this.monthsPerView); } 
-                    else { this.fullLabels = this.generateLabelsFromStrategy(); this.rawBarData = this.assets.map(() => []); this.rawBarDataPost = this.assets.map(() => []); this.rawLineData = []; const tempAssets = JSON.parse(JSON.stringify(this.assets)).map(a => ({ ...a, curBal: this.getAssetValue(a), v1: this.parseMoney(a.비과세원금), v2: this.parseMoney(a.이연퇴직소득), v3: this.parseMoney(a.세액공제원금), v4: this.parseMoney(a.운용수익), v5: this.parseMoney(a.보험잔고) })); const rate = parseFloat(this.settings.returnRate) || 4.0; this.fullLabels.forEach((dStr, i) => { let totalLineBal = 0; tempAssets.forEach((a, idx) => { const strat = this.strategies.find(s => String(s.시작연월) <= dStr && String(s.종료연월) >= dStr); let outPre = 0; if (strat && strat.assets && strat.assets[a.이름] !== undefined) outPre = this.parseMoney(strat.assets[a.이름]); else if (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= dStr)) outPre = this.parseMoney(a.수령액_세전); let toDeduct = outPre, totalTax = 0; const buckets = [ {amt: 'v1', rate: a.비과세원금_세율 !== undefined ? a.비과세원금_세율 : 0}, {amt: 'v2', rate: a.이연퇴직소득_세율 !== undefined ? a.이연퇴직소득_세율 : 0}, {amt: 'v3', rate: a.세액공제원금_세율 !== undefined ? a.세액공제원금_세율 : 5.5}, {amt: 'v4', rate: a.운용수익_세율 !== undefined ? a.운용수익_세율 : 5.5}, {amt: 'v5', rate: a.보험잔고_세율 !== undefined ? a.보험잔고_세율 : 5.5} ]; buckets.forEach(b => { let sub = Math.min(a[b.amt], toDeduct); totalTax += (sub * b.rate / 100); a[b.amt] -= sub; toDeduct -= sub; }); if (toDeduct > 0) totalTax += (toDeduct * 0.055); const vPost = outPre - totalTax; a.curBal = (a.curBal * (1 + rate / 1200)) - outPre; this.rawBarData[idx].push(outPre / 10000); this.rawBarDataPost[idx].push(vPost / 10000); if (a.유형 !== '국민연금') totalLineBal += Math.max(0, a.curBal); }); this.rawLineData.push(Math.round(totalLineBal / 10000)); }); }
+                    else { this.fullLabels = this.generateLabelsFromStrategy(); this.rawBarData = this.assets.map(() => []); this.rawBarDataPost = this.assets.map(() => []); this.rawLineData = []; const tempAssets = JSON.parse(JSON.stringify(this.assets)).map(a => ({ ...a, curBal: this.getAssetValue(a), v1: this.parseMoney(a.비과세원금), v2: this.parseMoney(a.이연퇴직소득), v3: this.parseMoney(a.세액공제원금), v4: this.parseMoney(a.운용수익), v5: this.parseMoney(a.보험잔고) })); const rate = parseFloat(this.settings.returnRate) || 4.0; this.fullLabels.forEach((dStr, i) => { let totalLineBal = 0; tempAssets.forEach((a, idx) => { const strat = this.strategies.find(s => s.자산명 === a.이름 && String(s.시작연월) <= dStr && String(s.종료연월) >= dStr); let outPre = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= dStr) ? this.parseMoney(a.수령액_세전) : 0); let toDeduct = outPre, totalTax = 0; const buckets = [ {amt: 'v1', rate: a.비과세원금_세율 || 0}, {amt: 'v2', rate: a.이연퇴직소득_세율 || 0}, {amt: 'v3', rate: a.세액공제원금_세율 || 5.5}, {amt: 'v4', rate: a.운용수익_세율 || 5.5}, {amt: 'v5', rate: a.보험잔고_세율 || 5.5} ]; buckets.forEach(b => { let sub = Math.min(a[b.amt], toDeduct); totalTax += (sub * b.rate / 100); a[b.amt] -= sub; toDeduct -= sub; }); if (toDeduct > 0) totalTax += (toDeduct * 0.055); const vPost = outPre - totalTax; a.curBal = (a.curBal * (1 + rate / 1200)) - outPre; this.rawBarData[idx].push(outPre / 10000); this.rawBarDataPost[idx].push(vPost / 10000); if (a.유형 !== '국민연금') totalLineBal += Math.max(0, a.curBal); }); this.rawLineData.push(Math.round(totalLineBal / 10000)); }); }
                 },
                 saveLocal() { localStorage.setItem('pensiontalk_v2', JSON.stringify({ a: this.assets, s: this.strategies, h: this.history, st: this.settings, m: this.monthsPerView })); },
                 loadLocal() { const d = JSON.parse(localStorage.getItem('pensiontalk_v2') || '{}'); if (d.a) this.assets = d.a; if (d.s) this.strategies = d.s; if (d.h) this.history = d.h; if (d.st) this.settings = d.st; if (d.m) this.monthsPerView = d.m; },
                 openAssetModal(a = null) { this.modalMode = a ? 'edit' : 'add'; this.form = a ? JSON.parse(JSON.stringify(a)) : { 아이디: Date.now().toString(), 유형: '개인연금', 이름: '', 상태: '납입중', 평가금액: 0, 비과세원금: 0, 비과세원금_세율: 0, 이연퇴직소득: 0, 이연퇴직소득_세율: 0, 세액공제원금: 0, 세액공제원금_세율: 5.5, 운용수익: 0, 운용수익_세율: 5.5, 보험잔고: 0, 보험잔고_세율: 5.5, 월납입액: 0, 투자운용형: false, 잔고처리: '' }; this.calculateAutomaticValues(); this.showModal = true; },
-                async saveAsset(e) { if (!this.form.이름) return alert("별칭 필수"); const fb = await this.applyBtnFeedback(e, "저장 중..."); this.calculateAutomaticValues(); const idx = this.assets.findIndex(a => a.아이디 === this.form.아이디); if (idx >= 0) this.assets[idx] = { ...this.form }; else this.assets.push({ ...this.form }); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveAsset', data: this.form }) }); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); this.restoreBtnFeedback(fb); setTimeout(() => this.showModal = false, 500); }, 300); },
-                // [v215] 자산 삭제 시 전략 시트 연동 삭제 로직 고정
-                async deleteAsset(e) { 
-                    if(!confirm("이 자산을 삭제하시겠습니까? 관련 시트 및 전략 데이터도 함께 삭제됩니다.")) return;
-                    const fb = await this.applyBtnFeedback(e, "삭제 중...");
-                    const targetId = this.form.아이디;
-                    const targetName = this.form.이름;
-                    this.assets = this.assets.filter(a => a.아이디 !== targetId); 
-                    this.saveLocal(); 
-                    setTimeout(async () => {
-                        await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteAsset', data: { 아이디: targetId, 이름: targetName } }) });
-                        this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout());
-                        this.restoreBtnFeedback(fb);
-                        setTimeout(() => this.showModal = false, 500);
-                    }, 300);
-                },
-                addStrategy() { const e = {}; this.assets.forEach(a => e[a.이름] = 0); this.strategies.push({ 아이디: Date.now().toString(), 시작연월: '', 종료연월: '', assets: e }); },
-                async saveStrategy(s, e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); const cleanAssets = {}; this.assets.forEach(a => cleanAssets[a.이름] = this.parseMoney(s.assets[a.이름]) || 0); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveStrategy', data: { ...s, assets: cleanAssets } }) }); this.preCalculateData(); this.drawChart(); this.restoreBtnFeedback(fb); }, 300); },
-                deleteStrategy(id) { 
-                    if(!confirm("이 전략 기간을 삭제하시겠습니까?")) return;
-                    this.strategies = this.strategies.filter(s => s.아이디 !== id); 
-                    this.saveLocal(); 
-                    fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteStrategy', data: { 아이디: id } }) });
-                    this.preCalculateData(); this.drawChart(); 
-                },
-                async addHistory(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); const h = { ...this.historyForm, 아이디: Date.now().toString() }; this.history.push(h); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveHistory', data: h }) }); this.preCalculateData(); this.drawChart(); this.restoreBtnFeedback(fb); }, 300); },
-                async deleteHistory(id, e) { 
-                    if(!confirm("이 수령 내역을 삭제하시겠습니까? 시트에서도 삭제됩니다.")) return;
-                    this.history = this.history.filter(h => h.아이디 !== id); 
-                    this.saveLocal(); 
-                    await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteHistory', data: { 아이디: id } }) });
-                    this.preCalculateData(); this.drawChart(); 
-                },
-                async saveSettings(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: this.settings }) }); this.preCalculateData(); this.drawChart(); this.restoreBtnFeedback(fb); }, 300); },
+                async saveAsset(e) { if (!this.form.이름) return alert("별칭 필수"); const fb = await this.feedbackBtn(e, "저장 중..."); this.calculateAutomaticValues(); const idx = this.assets.findIndex(a => a.아이디 === this.form.아이디); if (idx >= 0) this.assets[idx] = { ...this.form }; else this.assets.push({ ...this.form }); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveAsset', data: this.form }) }); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); this.restoreBtn(fb); setTimeout(() => this.showModal = false, 500); }, 300); },
+                async deleteAsset(e) { if(!confirm("삭제하시겠습니까?")) return; const fb = await this.feedbackBtn(e, "삭제 중..."); const targetId = this.form.아이디, targetName = this.form.이름; this.assets = this.assets.filter(a => a.아이디 !== targetId); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteAsset', data: { 아이디: targetId, 이름: targetName } }) }); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); this.restoreBtn(fb); setTimeout(() => this.showModal = false, 500); }, 300); },
+                addStrategy() { const firstAsset = this.assets.length > 0 ? this.assets[0].이름 : ''; this.strategies.push({ 아이디: Date.now().toString(), 시작연월: '', 종료연월: '', 자산명: firstAsset, 인출금액: 0 }); },
+                async saveStrategy(s, e) { const fb = await this.feedbackBtn(e, "저장 중..."); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveStrategy', data: s }) }); this.preCalculateData(); this.drawChart(); this.restoreBtn(fb); }, 300); },
+                async deleteStrategy(id, e) { if(!confirm("삭제하시겠습니까?")) return; this.strategies = this.strategies.filter(s => s.아이디 !== id); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteStrategy', data: { 아이디: id } }) }); this.preCalculateData(); this.drawChart(); },
+                async addHistory(e) { const fb = await this.feedbackBtn(e, "저장 중..."); const h = { ...this.historyForm, 아이디: Date.now().toString() }; this.history.push(h); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveHistory', data: h }) }); this.preCalculateData(); this.drawChart(); this.restoreBtn(fb); }, 300); },
+                async deleteHistory(id, e) { if(!confirm("삭제하시겠습니까?")) return; this.history = this.history.filter(h => h.아이디 !== id); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteHistory', data: { 아이디: id } }) }); this.preCalculateData(); this.drawChart(); },
+                async saveSettings(e) { const fb = await this.feedbackBtn(e, "저장 중..."); this.saveLocal(); setTimeout(async () => { await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: this.settings }) }); this.preCalculateData(); this.drawChart(); this.restoreBtn(fb); }, 300); },
                 saveHelp() { this.isHelpEditing = false; this.saveSettings(); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
-                resetFullData() { if(confirm("모든 로컬 데이터를 초기화하시겠습니까? 시트 데이터는 보존됩니다.")) { localStorage.clear(); location.reload(); } }
-            }
-        });
-        app.mount('#app');
+                resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
+            },
+            mounted() { this.loadLocal(); this.fullLabels = this.generateLabelsFromStrategy(); if (!GAS_API_URL.includes("api/proxy")) { this.fetchAndProcess(); } else { this.fetchAndProcess(); } this.preCalculateData(); this.drawChart(); setTimeout(() => this.updateLayout(), 500); window.addEventListener('resize', this.updateLayout); }
+        }).mount('#app');
     </script>
 </body>
 </html>
