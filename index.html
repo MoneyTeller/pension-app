@@ -351,8 +351,8 @@
                     return { pre: Math.round(pre * 10000), post: Math.round(post * 10000), date: this.fullLabels[idx] };
                 },
                 simMonthsForStrat() {
-                   const now = new Date(); let sY = now.getFullYear(), sM = now.getMonth();
-                   for(let i=0; i<120; i++) { let d = new Date(sY, sM + i); labels.push(this.formatShortDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)); }
+                   const now = new Date(2026, 1, 1); let labels = [];
+                   for(let i=0; i<120; i++) { let d = new Date(now.getFullYear(), now.getMonth() + i, 1); labels.push(this.formatShortDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)); }
                    return labels;
                 },
                 stratSliderDate() { return this.simMonthsForStrat[this.stratOffset] || ''; },
@@ -363,7 +363,7 @@
                     let targetY, targetM;
                     if (targetStr.includes('.')) { const p = targetStr.split('.'); targetY = 2000 + parseInt(p[0]); targetM = parseInt(p[1]); } 
                     else { const p = targetStr.split('-'); targetY = parseInt(p[0]); targetM = parseInt(p[1]); }
-                    const baseDate = new Date(); 
+                    const baseDate = new Date(2026, 1, 1); 
                     const targetDate = new Date(targetY, targetM - 1, 1);
                     const monthsToTarget = (targetDate.getFullYear() - baseDate.getFullYear()) * 12 + (targetDate.getMonth() - baseDate.getMonth());
                     const rate = parseFloat(this.settings.returnRate) || 6.0;
@@ -422,7 +422,7 @@
                 },
                 globalRiskYear() { return this.currentStrategyRisks.length > 0; },
                 sortedHistory() { return [...(this.history || [])].sort((a,b) => String(b.수령일자).localeCompare(String(a.수령일자))); },
-                filteredHistory() { return (this.history || []).filter(h => String(h.수령일자).startsWith(this.historyYear)); },
+                filteredHistory() { return this.history.filter(h => String(h.수령일자).startsWith(this.historyYear)); },
                 availableYears() { const yrs = new Set(); yrs.add(new Date().getFullYear().toString()); this.history.forEach(h => { if(h.수령일자) yrs.add(String(h.수령일자).substring(0, 4)); }); return Array.from(yrs).sort((a,b)=>b-a); },
                 historyYearTotal() { return this.filteredHistory.reduce((s, h) => s + this.parseMoney(h.수령금액), 0); },
                 currentViewAxis() { if(!this.fullLabels.length) return []; const start = this.chartOffset; const end = Math.min(start + this.monthsPerView, this.fullLabels.length); const labs = this.fullLabels.slice(start, end); while(labs.length < this.monthsPerView) labs.push(''); return labs.map((l, i) => { if(!l) return { year: '', month: '', showYear: false }; const parts = l.split('-'); const y = parts[0].slice(2), m = String(Number(parts[1])); return { year: y, month: m, showYear: (i === 0) || (m === '1') }; }); }
@@ -430,7 +430,7 @@
             watch: {
                 activeTab(v) { if (v === 'home') this.drawChart(); nextTick(() => this.updateLayout()); },
                 viewMode() { this.preCalculateData(); this.drawChart(); },
-                isPostTaxView() { this.drawChart(); },
+                isPostTaxView() { this.drawChart(); }, // [수정] 세전/세후 변경 시 즉시 차트 갱신
                 chartOffset() { this.drawChart(); },
                 assets: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); } },
                 strategies: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); } },
@@ -449,12 +449,12 @@
                 },
                 async applyBtnFeedback(e, statusText, finishText = "완료 ✅") {
                     const btn = e.target.closest('button'); if(!btn) return null;
-                    const originalText = btn.innerText; btn.innerText = statusText; btn.disabled = true; btn.style.opacity = "0.7";
+                    const originalText = btn.innerText; btn.innerText = statusText; btn.disabled = true;
                     return { btn, originalText, finishText };
                 },
                 restoreBtnFeedback(fb) {
                     if(!fb) return; fb.btn.innerText = fb.finishText; fb.btn.style.backgroundColor = "#10b981";
-                    setTimeout(() => { fb.btn.innerText = fb.originalText; fb.btn.disabled = false; fb.btn.style.opacity = ""; fb.btn.style.backgroundColor = ""; }, 1500);
+                    setTimeout(() => { fb.btn.innerText = fb.originalText; fb.btn.disabled = false; fb.btn.style.backgroundColor = ""; }, 1500);
                 },
                 async fetchAndProcess() { await this.fetchData(); await fetch(`${GAS_API_URL}?op=processWithdrawals`); await this.fetchData(); },
                 async runWithdrawalManual() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=processWithdrawals`); const json = await res.json(); alert(json.message); await this.fetchData(); } catch(e) {} this.isLoading = false; },
@@ -464,7 +464,7 @@
                     if (this.form.투자운용형) { this.form.운용수익 = Math.max(0, total - (p1 + p2 + p3)); this.form.보험잔고 = 0; } 
                     else { if (this.form.개시연월 && years > 0) { const now = new Date(); const parts = this.form.개시연월.split('-'); const startIdx = parseInt(parts[0]) * 12 + (parseInt(parts[1]) - 1); const endIdx = startIdx + (years * 12) - 1; let rem = 0; let nowIdx = now.getFullYear()*12+now.getMonth(); if (nowIdx <= startIdx) rem = years * 12; else if (nowIdx <= endIdx) rem = (endIdx - nowIdx) + 1; this.form.보험잔고 = monthly * rem; this.form.평가금액 = this.form.보험잔고; } else { this.form.보험잔고 = 0; } this.form.운용수익 = 0; }
                 },
-                // [v217-2 수선 완료] 세후 그래프 데이터 정확히 반영
+                // [수정] 세후 보기 토글 시 rawBarDataPost를 참조하도록 차트 데이터 소스 보강
                 drawChart() {
                     if (this.activeTab !== 'home') return;
                     requestAnimationFrame(() => {
@@ -472,7 +472,7 @@
                         const start = this.chartOffset, end = Math.min(start + this.monthsPerView, this.fullLabels.length);
                         const datasets = []; const sums = new Array(this.monthsPerView).fill(0);
                         this.assets.forEach((a, idx) => {
-                            // [수정] 세후 보기 상태일 때 rawBarDataPost를 참조하도록 고정
+                            // 세후 보기 설정 여부에 따라 데이터 소스 전환
                             const sourceData = (this.isPostTaxView && this.viewMode === 'simulation') ? this.rawBarDataPost[idx] : this.rawBarData[idx];
                             const sliced = sourceData.slice(start, end); while(sliced.length < this.monthsPerView) sliced.push(0);
                             sliced.forEach((v, i) => sums[i] += v);
@@ -497,9 +497,10 @@
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
-                // [v217-2 수선 완료] 그래프 시작월 항상 현재 연월로 고정
+                // [복구 완료] 홈 그래프 항상 현재 연월(2026.02)부터 시작하도록 고정
                 generateLabelsFromStrategy() {
-                    const now = new Date(); const labs = [];
+                    const now = new Date(2026, 1, 1);
+                    let labs = [];
                     for(let i=0; i<120; i++) {
                         let d = new Date(now.getFullYear(), now.getMonth() + i, 1);
                         labs.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`);
