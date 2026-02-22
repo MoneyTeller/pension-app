@@ -481,7 +481,22 @@
                             this.assets = this.sanitizeData(json.data.assets || []);
                             this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; });
                             this.history = this.sanitizeData(json.data.history || []); 
-                            if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); 
+                            if (json.data.settings) {
+    json.data.settings.forEach(row => {
+        // 1. settings 객체 내부의 값들 (birthDate, taxLimit 등) 반영
+        if (this.settings[row.항목] !== undefined) {
+            this.settings[row.항목] = row.값;
+        }
+        
+        // 2. [핵심 수정] 최상위 변수인 monthsPerView를 시트 값으로 강제 업데이트
+        if (row.항목 === 'monthsPerView') {
+            const sheetVal = parseInt(row.값);
+            if (!isNaN(sheetVal) && sheetVal > 0) {
+                this.monthsPerView = sheetVal;
+            }
+        }
+    });
+}
                             this.saveLocal(); this.preCalculateData(); this.drawChart(); this.isLoading = false; 
                         } 
                     } catch (e) { console.error(e); this.isLoading = false; } 
