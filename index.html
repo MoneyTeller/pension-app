@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v221)</title>
+    <title>PensionTalk V2.0 (v222)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -62,10 +62,6 @@
         #critical-error { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); color: #ff5555; z-index: 9999; padding: 20px; font-family: monospace; }
         .help-content { font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap; }
         .help-editor { width: 100%; height: 320px; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-size: 14px; line-height: 1.5; outline: none; resize: none; background: #fcfcfc; }
-        .log-item { border-bottom: 1px solid #f1f5f9; padding: 10px 0; }
-        .log-date { font-size: 10px; color: #94a3b8; font-weight: bold; }
-        .log-name { font-size: 14px; font-weight: 800; color: #1e293b; }
-        .log-detail { font-size: 12px; color: #64748b; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -202,7 +198,7 @@
                             <div class="col-span-3"><label class="text-[10px] font-black text-slate-400 block mb-0.5">자산 선택</label><select v-model="s.자산명" class="w-full border-b font-black p-1 text-sm outline-none bg-transparent"><option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option></select></div>
                             <div class="col-span-2"><label class="text-[10px] font-black text-slate-400 block mb-0.5 text-right">월 인출액</label><input type="number" v-model.number="s.인출금액" @input="riskTick++" class="w-full text-right text-sm font-black border-b p-1 outline-none"></div>
                         </div>
-                        <button @click="saveStrategy(s, $event)" class="w-full mt-4 bg-indigo-50 text-indigo-700 py-2.5 rounded-xl text-sm font-black transition-all duration-300">저장하기</button>
+                        <button @click="saveStrategy(s, $event)" class="w-full mt-4 bg-indigo-50 text-indigo-700 py-2.5 rounded-xl text-sm font-black">저장하기</button>
                     </div>
                     <button @click="addStrategy" class="w-full py-5 border-2 border-dashed border-slate-200 text-slate-400 rounded-3xl font-black text-sm hover:bg-white transition">+ 전략 추가</button>
                 </div>
@@ -220,13 +216,16 @@
                             <select v-model="historyForm.자산이름" class="form-input text-xs"><option v-for="a in assets" :value="a.이름">{{ a.이름 }}</option></select>
                         </div>
                         <input type="number" v-model.number="historyForm.수령금액" class="form-input font-black text-indigo-600 text-xl" placeholder="원 단위 입력">
-                        <button @click="addHistory($event)" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-black text-sm transition-all duration-300">기록 저장</button>
+                        <button @click="addHistory($event)" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-black text-sm">기록 저장</button>
                     </div>
                 </div>
                 <div class="p-2 space-y-1.5" :style="{ paddingTop: padHistory + 'px' }">
                     <div v-for="h in filteredHistory" :key="h.아이디" class="bg-white border p-3.5 rounded-2xl flex justify-between items-center shadow-sm">
                         <div><div class="text-[11px] text-slate-300 font-bold mb-0.5">{{ String(h.수령일자).substring(0,10) }}</div><div class="text-[16px] font-bold text-slate-700">{{ h.자산이름 }}</div></div>
-                        <div class="flex items-center gap-4"><div class="text-indigo-600 font-black text-lg">{{ parseMoney(h.수령금액).toLocaleString() }}원</div><button @click="deleteHistory(h.아이디, $event)" class="text-slate-200 hover:text-red-400"><i class="fa-solid fa-circle-xmark"></i></button></div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-indigo-600 font-black text-lg">{{ parseMoney(h.수령금액).toLocaleString() }}원</div>
+                            <button @click="deleteHistory(h.아이디, $event)" class="text-slate-200 hover:text-red-400"><i class="fa-solid fa-circle-xmark"></i></button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -297,15 +296,7 @@
         <div v-if="showLogModal" class="modal-overlay" @click.self="showLogModal = false">
             <div class="modal-container">
                 <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">최근 잔액 변동 기록</h3><button @click="showLogModal = false" class="text-slate-300 text-2xl">&times;</button></div>
-                <div class="modal-body">
-                    <button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button>
-                    <div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div>
-                    <div v-for="log in logs" :key="log.date" class="log-item">
-                        <div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div>
-                        <div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div>
-                        <p class="log-detail">{{ log.detail }}</p>
-                    </div>
-                </div>
+                <div class="modal-body"><button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button><div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div><div v-for="log in logs" :key="log.date" class="log-item"><div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div><div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div><p class="log-detail">{{ log.detail }}</p></div></div>
             </div>
         </div>
         
@@ -315,7 +306,6 @@
                 <div class="modal-body"><textarea v-if="isHelpEditing" v-model="settings.helpContent" class="help-editor" placeholder="여기에 도움말을 입력하세요."></textarea><div v-else class="help-content" v-text="settings.helpContent"></div></div>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -387,23 +377,22 @@
                     }).filter(x => x);
                 },
                 dynamicTotalAssets() { return this.dynamicNatureBreakdown.reduce((s,i) => s + (i ? i.total : 0), 0); },
-                // v221 리스크 엔진: 국민연금 50% 산정 및 지능형 문구
                 currentStrategyRisks() {
                     this.riskTick; const dateStr = this.stratSliderDate; if(!dateStr) return [];
                     let year; if (dateStr.includes('.')) { year = 2000 + parseInt(dateStr.split('.')[0]); } else { year = parseInt(dateStr.split('-')[0]); }
-                    let privatePensionIncomeSum = 0; let healthIncomeSum = 0;
+                    let privatePensionSum = 0; let nationalPensionForHealth = 0;
                     for(let m=1; m<=12; m++) {
                         const mStr = `${year}-${String(m).padStart(2,'0')}`;
                         this.assets.forEach(a => {
                             const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= mStr && s.종료연월 >= mStr);
                             let outAmt = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= mStr) ? this.parseMoney(a.수령액_세전) : 0);
-                            if (a.유형 === '국민연금') healthIncomeSum += (outAmt * 0.5); else privatePensionIncomeSum += outAmt;
+                            if (a.유형 === '국민연금') nationalPensionForHealth += (outAmt * 0.5); else privatePensionSum += outAmt;
                         });
                     }
-                    healthIncomeSum += (this.parseMoney(this.settings.otherIncome) || 0) * 10000;
+                    const totalHealthSum = nationalPensionForHealth + (this.parseMoney(this.settings.otherIncome) * 10000);
                     const result = [];
-                    if (privatePensionIncomeSum > (this.settings.taxLimit * 10000)) result.push({ msg: `${year}년 연금 금융소득 ${this.formatDisplay(privatePensionIncomeSum)}만 (${this.settings.taxLimit}만 초과)`, type: 'warn' });
-                    if (healthIncomeSum > (this.settings.healthLimit * 10000)) { result.push({ msg: `${year}년 피부양자 탈락 ${this.formatDisplay(healthIncomeSum)}만 (${this.settings.healthLimit}만 초과)`, type: 'danger' }); result.push({ msg: `💸 건보료 추가 부과 주의 (${this.settings.healthLimit}만 초과)`, type: 'fatal' }); }
+                    if (privatePensionSum > (this.settings.taxLimit * 10000)) result.push({ msg: `${year}년 연금 금융소득 ${this.formatDisplay(privatePensionSum)}만 (${this.settings.taxLimit}만 초과)`, type: 'warn' });
+                    if (totalHealthSum > (this.settings.healthLimit * 10000)) { result.push({ msg: `${year}년 피부양자 탈락 ${this.formatDisplay(totalHealthSum)}만 (${this.settings.healthLimit}만 초과)`, type: 'danger' }); result.push({ msg: `💸 건보료 추가 부과 주의 (${this.settings.healthLimit}만 초과)`, type: 'fatal' }); }
                     return result;
                 },
                 globalRiskYear() { return this.currentStrategyRisks.length > 0; },
@@ -411,10 +400,7 @@
                 filteredHistory() { return this.history.filter(h => String(h.수령일자).startsWith(this.historyYear)); },
                 availableYears() { const yrs = new Set(); yrs.add(new Date().getFullYear().toString()); this.history.forEach(h => { if(h.수령일자) yrs.add(String(h.수령일자).substring(0, 4)); }); return Array.from(yrs).sort((a,b)=>b-a); },
                 historyYearTotal() { return this.filteredHistory.reduce((s, h) => s + this.parseMoney(h.수령금액), 0); },
-                currentViewAxis() { 
-                    if(!this.fullLabels.length) return []; const start = this.chartOffset; const end = Math.min(start + this.monthsPerView, this.fullLabels.length); const labs = this.fullLabels.slice(start, end); while(labs.length < this.monthsPerView) labs.push(''); 
-                    return labs.map((l, i) => { if(!l) return { year: '', month: '', showYear: false }; const parts = l.split('-'); const y = parts[0].slice(2), m = String(Number(parts[1])); return { year: y, month: m, showYear: (i === 0) || (m === '1') }; }); 
-                }
+                currentViewAxis() { if(!this.fullLabels.length) return []; const start = this.chartOffset; const end = Math.min(start + this.monthsPerView, this.fullLabels.length); const labs = this.fullLabels.slice(start, end); while(labs.length < this.monthsPerView) labs.push(''); return labs.map((l, i) => { if(!l) return { year: '', month: '', showYear: false }; const parts = l.split('-'); const y = parts[0].slice(2), m = String(Number(parts[1])); return { year: y, month: m, showYear: (i === 0) || (m === '1') }; }); }
             },
             watch: {
                 activeTab(v) { if (v === 'home') this.drawChart(); nextTick(() => this.updateLayout()); },
@@ -422,8 +408,7 @@
                 isPostTaxView() { this.drawChart(); },
                 chartOffset() { this.drawChart(); },
                 assets: { deep:true, handler(){ this.saveLocal(); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); } },
-                strategies: { deep:true, handler(){ this.saveLocal(); this.preCalculateData(); this.drawChart(); } },
-                riskTick() { nextTick(() => this.updateLayout()); }
+                strategies: { deep:true, handler(){ this.saveLocal(); this.preCalculateData(); this.drawChart(); } }
             },
             methods: {
                 handleTouchStart(e) { this.touchStartX = e.changedTouches[0].screenX; this.touchStartY = e.changedTouches[0].screenY; },
@@ -445,20 +430,7 @@
                     if(!fb) return; fb.btn.innerText = fb.finishText; fb.btn.style.backgroundColor = "#10b981";
                     setTimeout(() => { fb.btn.innerText = fb.originalText; fb.btn.disabled = false; fb.btn.style.opacity = ""; fb.btn.style.backgroundColor = ""; }, 1500);
                 },
-                async fetchData() { 
-                    this.isLoading = true; 
-                    try { 
-                        const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); 
-                        if (json.result === 'success') { 
-                            this.assets = this.sanitizeData(json.data.assets || []);
-                            this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; });
-                            this.history = this.sanitizeData(json.data.history || []); 
-                            if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); 
-                            this.saveLocal(); this.preCalculateData(); this.drawChart(); this.isLoading = false; 
-                        } 
-                    } catch (e) { this.isLoading = false; } 
-                },
-                async forceSync() { await this.fetchData(); await fetch(`${GAS_API_URL}?op=processWithdrawals`); await this.fetchData(); },
+                async fetchAndProcess() { this.isLoading = true; await this.fetchData(); await fetch(`${GAS_API_URL}?op=processWithdrawals`); await this.fetchData(); this.isLoading = false; },
                 async runWithdrawalManual() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=processWithdrawals`); const json = await res.json(); alert(json.message); await this.fetchData(); } catch(e) {} this.isLoading = false; },
                 openLogModal() { fetch(`${GAS_API_URL}?op=getLogs`).then(r => r.json()).then(j => { if(j.result==='success') this.logs = j.data; }); this.showLogModal = true; },
                 calculateAutomaticValues() {
@@ -497,7 +469,6 @@
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
-                // v221 홈 그래프 날짜 축: 항상 현재 연월부터 고정
                 generateLabelsFromStrategy() {
                     const now = new Date(); const labs = [];
                     for(let i=0; i<120; i++) {
@@ -548,9 +519,11 @@
                 async saveSettings(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: this.settings }) }); this.preCalculateData(); this.restoreBtnFeedback(fb); },
                 saveHelp() { this.isHelpEditing = false; this.saveSettings({ target: { closest: () => ({ innerText: '저장', disabled: false, style: {} }) } }); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
+                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
+                async forceSync() { await this.fetchAndProcess(); },
                 resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
             },
-            mounted() { this.loadLocal(); this.fetchData(); window.addEventListener('resize', this.updateLayout); }
+            mounted() { this.loadLocal(); this.fetchAndProcess(); window.addEventListener('resize', this.updateLayout); }
         }).mount('#app');
     </script>
 </body>
