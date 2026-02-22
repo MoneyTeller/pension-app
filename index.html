@@ -483,17 +483,13 @@
                             this.history = this.sanitizeData(json.data.history || []); 
                             if (json.data.settings) {
                                 json.data.settings.forEach(row => {
-                                    // 1. settings 객체 내부의 값들 (birthDate, taxLimit 등) 반영
+                                    // 1. 기존 설정값 적용
                                     if (this.settings[row.항목] !== undefined) {
                                         this.settings[row.항목] = row.값;
                                     }
-        
-                                    // 2. [핵심 수정] 최상위 변수인 monthsPerView를 시트 값으로 강제 업데이트
+                                    // 2. 화면 표시 개월수 적용 (루프 안으로 이동)
                                     if (row.항목 === 'monthsPerView') {
-                                        const sheetVal = parseInt(row.값);
-                                        if (!isNaN(sheetVal) && sheetVal > 0) {
-                                            this.monthsPerView = sheetVal;
-                                        }
+                                        this.monthsPerView = parseInt(row.값) || 10;
                                     }
                                 });
                             }
@@ -647,7 +643,8 @@
 },
                 saveHelp() { this.isHelpEditing = false; this.saveSettings({ target: { closest: () => ({ innerText: '저장', disabled: false, style: {} }) } }); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
-                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); if (row.항목 === 'monthsPerView') {
+                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); 
+                if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); if (row.항목 === 'monthsPerView') {
             this.monthsPerView = parseInt(row.값) || 8;
         }; this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
                 resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
