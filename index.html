@@ -254,28 +254,8 @@
             <button @click="activeTab='settings'" :class="activeTab==='settings'?'text-indigo-600':'text-slate-300'" class="nav-item"><i class="fa-solid fa-sliders text-xl"></i><span class="text-[11px] font-bold">설정</span></button>
         </nav>
 
-        <div v-if="showLogModal" class="modal-overlay" @click.self="showLogModal = false">
-            <div class="modal-container">
-                <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">최근 잔액 변동 기록</h3><button @click="showLogModal = false" class="text-slate-300 text-2xl">&times;</button></div>
-                <div class="modal-body">
-                    <button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button>
-                    <div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div>
-                    <div v-for="log in logs" :key="log.date" class="log-item">
-                        <div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div>
-                        <div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div>
-                        <p class="log-detail">{{ log.detail }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false">
-            <div class="modal-container">
-                <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">주요 세법 및 제도 안내</h3><div class="flex items-center gap-3"><button v-if="!isHelpEditing" @click="isHelpEditing = true" class="text-slate-400 hover:text-indigo-600"><i class="fa-solid fa-pen-to-square"></i></button><button v-if="isHelpEditing" @click="saveHelp" class="text-emerald-500 font-bold text-xs">저장</button><button @click="showHelpModal = false" class="text-slate-300 text-2xl ml-2">&times;</button></div></div>
-                <div class="modal-body"><textarea v-if="isHelpEditing" v-model="settings.helpContent" class="help-editor" placeholder="여기에 도움말을 입력하세요."></textarea><div v-else class="help-content" v-text="settings.helpContent"></div></div>
-            </div>
-        </div>
-
+        <div v-if="showLogModal" class="modal-overlay" @click.self="showLogModal = false"><div class="modal-container"><div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">최근 잔액 변동 기록</h3><button @click="showLogModal = false" class="text-slate-300 text-2xl">&times;</button></div><div class="modal-body"><button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button><div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div><div v-for="log in logs" :key="log.date" class="log-item"><div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div><div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div><p class="log-detail">{{ log.detail }}</p></div></div></div></div>
+        <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false"><div class="modal-container"><div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">주요 세법 및 제도 안내</h3><div class="flex items-center gap-3"><button v-if="!isHelpEditing" @click="isHelpEditing = true" class="text-slate-400 hover:text-indigo-600"><i class="fa-solid fa-pen-to-square"></i></button><button v-if="isHelpEditing" @click="saveHelp" class="text-emerald-500 font-bold text-xs">저장</button><button @click="showHelpModal = false" class="text-slate-300 text-2xl ml-2">&times;</button></div></div><div class="modal-body"><textarea v-if="isHelpEditing" v-model="settings.helpContent" class="help-editor" placeholder="여기에 도움말을 입력하세요."></textarea><div v-else class="help-content" v-text="settings.helpContent"></div></div></div></div>
         <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
             <div class="modal-container">
                 <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">연금 자산 상세 설정</h3><button @click="showModal = false" class="text-slate-300 text-2xl">&times;</button></div>
@@ -400,24 +380,19 @@
                 currentStrategyRisks() {
                     this.riskTick; const dateStr = this.stratSliderDate; if(!dateStr) return [];
                     let year; if (dateStr.includes('.')) { year = 2000 + parseInt(dateStr.split('.')[0]); } else { year = parseInt(dateStr.split('-')[0]); }
-                    let pensionIncomeSum = 0; let healthIncomeSum = 0;
+                    let pensionSum = 0; let healthSum = 0;
                     for(let m=1; m<=12; m++) {
                         const mStr = `${year}-${String(m).padStart(2,'0')}`;
                         this.assets.forEach(a => {
                             const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= mStr && s.종료연월 >= mStr);
                             let outAmt = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= mStr) ? this.parseMoney(a.수령액_세전) : 0);
-                            if (a.유형 === '국민연금') healthIncomeSum += (outAmt * 0.5); else pensionIncomeSum += outAmt;
+                            if (a.유형 === '국민연금') healthSum += (outAmt * 0.5); else pensionSum += outAmt;
                         });
                     }
-                    healthIncomeSum += (this.parseMoney(this.settings.otherIncome) || 0) * 10000;
-                    const taxLimit = (this.settings.taxLimit || 1500) * 10000;
-                    const healthLimit = (this.settings.healthLimit || 1000) * 10000;
+                    healthSum += (this.parseMoney(this.settings.otherIncome) * 10000);
                     const result = [];
-                    if (pensionIncomeSum > taxLimit) result.push({ msg: `${year}년 연금 금융소득 ${this.formatDisplay(pensionIncomeSum)}만 (${this.settings.taxLimit}만 초과)`, type: 'warn' });
-                    if (healthIncomeSum > healthLimit) { 
-                        result.push({ msg: `${year}년 피부양자 탈락 ${this.formatDisplay(healthIncomeSum)}만 (${this.settings.healthLimit}만 초과)`, type: 'danger' }); 
-                        result.push({ msg: `💸 건보료 추가 부과 주의 (${this.settings.healthLimit}만 초과)`, type: 'fatal' }); 
-                    }
+                    if (pensionSum > (this.settings.taxLimit * 10000)) result.push({ msg: `${year}년 연금 금융소득 ${this.formatDisplay(pensionSum)}만 (${this.settings.taxLimit}만 초과)`, type: 'warn' });
+                    if (healthSum > (this.settings.healthLimit * 10000)) { result.push({ msg: `${year}년 피부양자 탈락 ${this.formatDisplay(healthSum)}만 (${this.settings.healthLimit}만 초과)`, type: 'danger' }); result.push({ msg: `💸 건보료 추가 부과 주의`, type: 'fatal' }); }
                     return result;
                 },
                 globalRiskYear() { return this.currentStrategyRisks.length > 0; },
@@ -430,7 +405,7 @@
             watch: {
                 activeTab(v) { if (v === 'home') this.drawChart(); nextTick(() => this.updateLayout()); },
                 viewMode() { this.preCalculateData(); this.drawChart(); },
-                isPostTaxView() { this.drawChart(); }, // 세전/세후 변경 시 즉시 갱신
+                isPostTaxView() { this.drawChart(); }, // [수정] 세전/세후 변경 시 즉시 차트 갱신
                 chartOffset() { this.drawChart(); },
                 assets: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); } },
                 strategies: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); } },
@@ -496,7 +471,7 @@
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
-                // [수정] 그래프 시작일 항상 현재 연월로 고정
+                // [수정] 그래프 시작일 현재 연월 고정
                 generateLabelsFromStrategy() {
                     const now = new Date(2026, 1, 1);
                     let labs = [];
