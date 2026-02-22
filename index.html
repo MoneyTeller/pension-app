@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217-2)</title>
+    <title>PensionTalk V2.0 (v217-3)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -512,7 +512,23 @@
                             datasets.push({ type: 'line', label: '잔고', borderColor: '#334155', borderWidth: 3, pointRadius: 0, data: slicedLine, yAxisID: 'y1', order: 1, tension: 0.1 });
                         }
                         this.calculatedYMax = this.getNiceScale(Math.max(...sums, 1) / 0.7, 10);
-                        this.chartInstance = new Chart(ctx, { type: 'bar', data: { labels: new Array(this.monthsPerView).fill(''), datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { stacked: true, ticks: { callback: v => v.toLocaleString(), font: {size:11} }, min: 0, max: this.calculatedYMax }, y1: { type: 'linear', position: 'right', display: this.viewMode === 'simulation', min: 0, max: this.calculatedY1Max * 10000, ticks: { callback: v => (v / 10000).toFixed(1) + '억', font: {size:10} } } } } });
+                        this.chartInstance = new Chart(ctx, { type: 'bar', data: { labels: new Array(this.monthsPerView).fill(''), datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: {
+                filter: function(tooltipItem) {
+                    // 금액(raw)이 0보다 큰 것만 말풍선에 노출
+                    return tooltipItem.raw > 0;
+                },
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) { label += ': '; }
+                        if (context.parsed.y !== null) {
+                            // 단위 '만'을 붙여 가독성 향상
+                            label += context.parsed.y.toLocaleString() + '만';
+                        }
+                        return label;
+                    }
+                }
+            } }, scales: { x: { display: false }, y: { stacked: true, ticks: { callback: v => v.toLocaleString(), font: {size:11} }, min: 0, max: this.calculatedYMax }, y1: { type: 'linear', position: 'right', display: this.viewMode === 'simulation', min: 0, max: this.calculatedY1Max * 10000, ticks: { callback: v => (v / 10000).toFixed(1) + '억', font: {size:10} } } } } });
                     });
                 },
                 updateLayout() { if (this.$refs.homeHeader) this.padHome = this.$refs.homeHeader.offsetHeight + 70; if (this.$refs.stratHeader) this.padStrat = this.$refs.stratHeader.offsetHeight + 70; if (this.$refs.historyHeader) this.padHistory = this.$refs.historyHeader.offsetHeight + 70; if (this.$refs.assetsHeader) this.padAssets = this.$refs.assetsHeader.offsetHeight + 70; },
@@ -526,14 +542,34 @@
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
                 // [복구] 홈 그래프 항상 현재 연월(2026.02)부터 시작하도록 고정
                 generateLabelsFromStrategy() {
-                    const now = new Date(2026, 1, 1);
-                    let labs = [];
-                    for(let i=0; i<120; i++) {
-                        let d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                        labs.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`);
-                    }
-                    return labs;
-                },
+    const now = new Date();
+    // 현재 월부터 시작
+    let minDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    // 기본 종료일은 10년 뒤
+    let maxDate = new Date(minDate.getFullYear() + 10, minDate.getMonth(), 1);
+
+    // [핵심] 전략 데이터가 있다면 가장 늦은 종료연월을 maxDate로 설정
+    if (this.strategies && this.strategies.length > 0) {
+        const lastDateStr = [...this.strategies]
+            .map(s => s.종료연월)
+            .filter(d => d)
+            .sort()
+            .pop();
+        if (lastDateStr) {
+            const [y, m] = lastDateStr.split('-').map(Number);
+            maxDate = new Date(y, m - 1, 1);
+        }
+    }
+
+    const labs = [];
+    let cur = new Date(minDate);
+    // 시작월부터 마지막 전략 종료월까지 루프
+    while (cur <= maxDate) {
+        labs.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+        cur.setMonth(cur.getMonth() + 1);
+    }
+    return labs;
+},
                 preCalculateData() {
                     if (this.viewMode === 'history') {
                         const historyMap = {}; (this.history || []).forEach(h => { const m = String(h.수령일자).substring(0, 7); if(!historyMap[m]) historyMap[m] = {}; historyMap[m][h.자산이름] = (historyMap[m][h.자산이름] || 0) + this.parseMoney(h.수령금액); });
