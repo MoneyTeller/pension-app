@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217-1)</title>
+    <title>PensionTalk V2.0 (v217-2)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -120,7 +120,13 @@
                                 <div class="text-[11px] text-slate-400 font-bold" v-if="item.showYear">{{ item.year }}</div>
                             </div>
                         </div>
-                        <div class="pt-2 px-1"><input v-if="fullLabels.length > monthsPerView" type="range" v-model.number="chartOffset" :min="0" :max="Math.max(0, fullLabels.length - monthsPerView)" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"></div>
+                        <div class="pt-2 px-1">
+                            <input v-if="fullLabels.length > monthsPerView" type="range" v-model.number="chartOffset" :min="0" :max="Math.max(0, fullLabels.length - monthsPerView)" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            <div v-if="fullLabels.length > 0" class="flex justify-between items-center text-[11px] text-slate-400 font-bold mt-1 px-1">
+                                <span>{{ formatShortDate(fullLabels[0]) }}</span>
+                                <span>{{ formatShortDate(fullLabels[fullLabels.length-1]) }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -345,11 +351,8 @@
                     return { pre: Math.round(pre * 10000), post: Math.round(post * 10000), date: this.fullLabels[idx] };
                 },
                 simMonthsForStrat() {
-                   const labels = this.generateLabelsFromStrategy();
-                   if(!labels.length) {
-                       const now = new Date(); let sY = now.getFullYear(), sM = now.getMonth();
-                       for(let i=0; i<120; i++) { let d = new Date(sY, sM + i); labels.push(this.formatShortDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)); }
-                   }
+                   const now = new Date(2026, 1, 1); let labels = [];
+                   for(let i=0; i<120; i++) { let d = new Date(now.getFullYear(), now.getMonth() + i, 1); labels.push(this.formatShortDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)); }
                    return labels;
                 },
                 stratSliderDate() { return this.simMonthsForStrat[this.stratOffset] || ''; },
@@ -426,14 +429,12 @@
             },
             watch: {
                 activeTab(v) { if (v === 'home') this.drawChart(); nextTick(() => this.updateLayout()); },
-                currentStrategyRisks: { deep: true, handler() { nextTick(() => this.updateLayout()); } },
-                stratOffset() { nextTick(() => this.updateLayout()); },
-                riskTick() { nextTick(() => this.updateLayout()); },
+                viewMode() { this.preCalculateData(); this.drawChart(); },
+                isPostTaxView() { this.drawChart(); }, // 세전/세후 변경 시 즉시 갱신
                 chartOffset() { this.drawChart(); },
-                monthsPerView() { this.drawChart(); },
                 assets: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); nextTick(() => this.updateLayout()); } },
                 strategies: { deep:true, handler(){ if(this.isLoading) return; this.saveLocal(); this.preCalculateData(); this.drawChart(); } },
-                viewMode() { this.preCalculateData(); this.drawChart(); }
+                riskTick() { nextTick(() => this.updateLayout()); }
             },
             methods: {
                 handleTouchStart(e) { this.touchStartX = e.changedTouches[0].screenX; this.touchStartY = e.changedTouches[0].screenY; },
@@ -448,58 +449,42 @@
                 },
                 async applyBtnFeedback(e, statusText, finishText = "완료 ✅") {
                     const btn = e.target.closest('button'); if(!btn) return null;
-                    const originalText = btn.innerText; btn.innerText = statusText; btn.disabled = true; btn.style.opacity = "0.7";
+                    const originalText = btn.innerText; btn.innerText = statusText; btn.disabled = true;
                     return { btn, originalText, finishText };
                 },
                 restoreBtnFeedback(fb) {
                     if(!fb) return; fb.btn.innerText = fb.finishText; fb.btn.style.backgroundColor = "#10b981";
-                    setTimeout(() => { fb.btn.innerText = fb.originalText; fb.btn.disabled = false; fb.btn.style.opacity = ""; fb.btn.style.backgroundColor = ""; }, 1500);
+                    setTimeout(() => { fb.btn.innerText = fb.originalText; fb.btn.disabled = false; fb.btn.style.backgroundColor = ""; }, 1500);
                 },
                 async fetchAndProcess() { await this.fetchData(); await fetch(`${GAS_API_URL}?op=processWithdrawals`); await this.fetchData(); },
-                async runWithdrawalManual() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=processWithdrawals`); const json = await res.json(); alert(json.message); await this.fetchData(); await this.fetchLogs(); } catch(e) { alert("실행 오류"); } this.isLoading = false; },
-                async fetchLogs() { try { const res = await fetch(`${GAS_API_URL}?op=getLogs`); const json = await res.json(); if (json.result === 'success') this.logs = json.data; } catch(e) { console.error("Log fetch error", e); } },
-                openLogModal() { this.fetchLogs(); this.showLogModal = true; },
+                async runWithdrawalManual() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=processWithdrawals`); const json = await res.json(); alert(json.message); await this.fetchData(); } catch(e) {} this.isLoading = false; },
+                openLogModal() { fetch(`${GAS_API_URL}?op=getLogs`).then(r => r.json()).then(j => { if(j.result==='success') this.logs = j.data; }); this.showLogModal = true; },
                 calculateAutomaticValues() {
                     const total = this.parseMoney(this.form.평가금액), p1 = this.parseMoney(this.form.비과세원금), p2 = this.parseMoney(this.form.이연퇴직소득), p3 = this.parseMoney(this.form.세액공제원금), monthly = this.parseMoney(this.form.수령액_세전), years = this.parseMoney(this.form.수령기간);
                     if (this.form.투자운용형) { this.form.운용수익 = Math.max(0, total - (p1 + p2 + p3)); this.form.보험잔고 = 0; } 
                     else { if (this.form.개시연월 && years > 0) { const now = new Date(); const parts = this.form.개시연월.split('-'); const startIdx = parseInt(parts[0]) * 12 + (parseInt(parts[1]) - 1); const endIdx = startIdx + (years * 12) - 1; let rem = 0; let nowIdx = now.getFullYear()*12+now.getMonth(); if (nowIdx <= startIdx) rem = years * 12; else if (nowIdx <= endIdx) rem = (endIdx - nowIdx) + 1; this.form.보험잔고 = monthly * rem; this.form.평가금액 = this.form.보험잔고; } else { this.form.보험잔고 = 0; } this.form.운용수익 = 0; }
                 },
-                async fetchData() { 
-                    this.isLoading = true; 
-                    try { 
-                        const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); 
-                        if (json.result === 'success') { 
-                            this.assets = this.sanitizeData(json.data.assets || []);
-                            this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; });
-                            this.history = this.sanitizeData(json.data.history || []); 
-                            if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); 
-                            this.saveLocal(); this.preCalculateData(); this.drawChart(); this.isLoading = false; 
-                        } 
-                    } catch (e) { console.error(e); this.isLoading = false; } 
-                },
-                async forceSync() { this.isLoading = true; await this.fetchAndProcess(); this.isLoading = false; },
-                formatDashboardDate(dStr) { if (!dStr) return ''; const parts = dStr.split('-'); return (parts.length < 2) ? dStr : `${parts[0]}년 ${parseInt(parts[1])}월`; },
+                // [수정] 세후 그래프 적용
                 drawChart() {
                     if (this.activeTab !== 'home') return;
                     requestAnimationFrame(() => {
-                        const ctx = document.getElementById('mainChart'); if (!ctx) return; if (this.chartInstance) { this.chartInstance.destroy(); this.chartInstance = null; }
+                        const ctx = document.getElementById('mainChart'); if (!ctx) return; if (this.chartInstance) { this.chartInstance.destroy(); }
                         const start = this.chartOffset, end = Math.min(start + this.monthsPerView, this.fullLabels.length);
-                        const datasets = [], preTaxSums = new Array(this.monthsPerView).fill(0); 
+                        const datasets = []; const sums = new Array(this.monthsPerView).fill(0);
                         this.assets.forEach((a, idx) => {
-                            const sourceData = this.isPostTaxView ? this.rawBarDataPost : this.rawBarData;
-                            const slicedData = sourceData[idx].slice(start, end);
-                            this.rawBarData[idx].slice(start, end).forEach((val, i) => { preTaxSums[i] += val; });
-                            while(slicedData.length < this.monthsPerView) slicedData.push(0);
-                            datasets.push({ type: 'bar', label: a.이름, backgroundColor: this.getChartColor(idx), data: slicedData, stack: 'a', order: 2, yAxisID: 'y' });
+                            const sourceData = (this.isPostTaxView && this.viewMode === 'simulation') ? this.rawBarDataPost[idx] : this.rawBarData[idx];
+                            const sliced = sourceData.slice(start, end); while(sliced.length < this.monthsPerView) sliced.push(0);
+                            sliced.forEach((v, i) => sums[i] += v);
+                            datasets.push({ type: 'bar', label: a.이름, backgroundColor: this.getChartColor(idx), data: sliced, stack: 'a', order: 2, yAxisID: 'y' });
                         });
                         if (this.viewMode === 'simulation') {
-                            const slicedLine = this.rawLineData.slice(start, end);
+                            const slicedLine = this.rawLineData.slice(start, end); 
                             this.calculatedY1Max = (Math.ceil(Math.max(...slicedLine, 1) / 0.9 / 1000) * 1000 / 10000).toFixed(2);
                             while(slicedLine.length < this.monthsPerView) slicedLine.push(0);
                             datasets.push({ type: 'line', label: '잔고', borderColor: '#334155', borderWidth: 3, pointRadius: 0, data: slicedLine, yAxisID: 'y1', order: 1, tension: 0.1 });
                         }
-                        this.calculatedYMax = this.getNiceScale(Math.max(...preTaxSums, 1) / 0.7, 10);
-                        try { this.chartInstance = new Chart(ctx, { type: 'bar', data: { labels: new Array(this.monthsPerView).fill(''), datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { bodyFont: { size: 14 }, filter: function(tooltipItem) { return tooltipItem.parsed.y > 0; }, callbacks: { label: function(context) { let label = context.dataset.label || ''; let value = context.parsed.y; if (context.dataset.type === 'line') return label + ': ' + Math.floor(value).toLocaleString() + '만원'; else return label + ': ' + Math.round(value * 10000).toLocaleString() + '원'; } } } }, scales: { x: { display: false }, y: { stacked: true, ticks: { callback: v => v.toLocaleString(), font: {size:11} }, min: 0, max: this.calculatedYMax }, y1: { type: 'linear', position: 'right', display: this.viewMode === 'simulation', min: 0, max: this.calculatedY1Max * 10000, ticks: { callback: v => (v / 10000).toFixed(1) + '억', font: {size:10} } } } } }); } catch(e) { console.error("Chart Error:", e); }
+                        this.calculatedYMax = this.getNiceScale(Math.max(...sums, 1) / 0.7, 10);
+                        this.chartInstance = new Chart(ctx, { type: 'bar', data: { labels: new Array(this.monthsPerView).fill(''), datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { stacked: true, ticks: { callback: v => v.toLocaleString(), font: {size:11} }, min: 0, max: this.calculatedYMax }, y1: { type: 'linear', position: 'right', display: this.viewMode === 'simulation', min: 0, max: this.calculatedY1Max * 10000, ticks: { callback: v => (v / 10000).toFixed(1) + '억', font: {size:10} } } } } });
                     });
                 },
                 updateLayout() { if (this.$refs.homeHeader) this.padHome = this.$refs.homeHeader.offsetHeight + 70; if (this.$refs.stratHeader) this.padStrat = this.$refs.stratHeader.offsetHeight + 70; if (this.$refs.historyHeader) this.padHistory = this.$refs.historyHeader.offsetHeight + 70; if (this.$refs.assetsHeader) this.padAssets = this.$refs.assetsHeader.offsetHeight + 70; },
@@ -511,7 +496,7 @@
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
-                // [복구] 홈 그래프 항상 현재 연월(2026.02)부터 시작하도록 고정
+                // [수정] 그래프 시작일 항상 현재 연월로 고정
                 generateLabelsFromStrategy() {
                     const now = new Date(2026, 1, 1);
                     let labs = [];
@@ -571,4 +556,3 @@
     </script>
 </body>
 </html>
-
