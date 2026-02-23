@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217-4)</title>
+    <title>PensionTalk V2.0 (v217-6)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -282,16 +282,23 @@
             <div class="modal-container">
                 <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">연금 자산 상세 설정</h3><button @click="showModal = false" class="text-slate-300 text-2xl">&times;</button></div>
                 <div class="modal-body space-y-5">
-                    <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">종류</label><select v-model="form.유형" class="form-input font-black text-indigo-900"><option>국민연금</option><option>개인연금</option><option>퇴직연금(IRP)</option></select></div>
+                    <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">종류</label>
+                        <select v-model="form.유형" class="form-input font-black text-indigo-900">
+                            <option>국민연금</option>
+                            <option>개인연금</option>
+                            <option>퇴직연금(IRP)</option>
+                            <option>실업급여(비과세)</option>
+                        </select>
+                    </div>
                     <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">별칭</label><input v-model="form.이름" class="form-input font-black"></div>
                     <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">상태</label><div class="flex gap-1 bg-slate-100 p-1 rounded-xl"><button v-for="s in ['납입중', '보류/거치', '수령중']" @click="form.상태 = s" :class="form.상태 === s ? 'bg-white text-indigo-600 shadow' : 'text-slate-400'" class="flex-1 py-2 text-xs font-black rounded-lg transition">{{ s }}</button></div></div>
                     <div class="bg-slate-50 p-3 rounded-xl border space-y-3 shadow-inner">
                         <div v-if="(form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && form.상태 !== '납입중'"><label class="flex items-center text-xs font-black text-indigo-800 cursor-pointer"><input type="checkbox" v-model="form.투자운용형" class="mr-2 w-4 h-4">투자 운용형 (ETF/펀드)</label></div>
-                        <div v-if="form.유형 !== '국민연금'">
+                        <div v-if="form.유형 !== '국민연금' && form.유형 !== '실업급여(비과세)'">
                             <div v-if="form.상태 === '수령중' && (form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && !form.투자운용형" class="bg-indigo-100 p-3 rounded-xl text-indigo-700 text-xs font-black border border-indigo-200 italic tracking-tighter">보험형 수령 중: 잔고 자동 계산됨</div>
                             <div v-else><label class="uppercase text-[11px] font-black text-slate-400 block mb-1">현재 보유액 (원)</label><input type="number" v-model.number="form.평가금액" @input="calculateAutomaticValues" class="form-input font-black text-indigo-600 text-xl border-indigo-100"></div>
                         </div>
-                        <div class="space-y-2.5 border-t pt-3">
+                        <div class="space-y-2.5 border-t pt-3" v-if="form.유형 !== '실업급여(비과세)'">
                              <div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-slate-500 w-24">비과세 원금</span><input v-model.number="form.비과세원금" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 text-right text-sm font-bold bg-transparent outline-none"><div class="flex items-center w-18"><input v-model.number="form.비과세원금_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-slate-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div>
                              <div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-slate-500 w-24">이연퇴직소득</span><input v-model.number="form.이연퇴직소득" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 text-right text-sm font-bold bg-transparent outline-none"><div class="flex items-center w-18"><input v-model.number="form.이연퇴직소득_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-slate-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div>
                              <div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-orange-500 w-24">세액공제 원금</span><input v-model.number="form.세액공제원금" type="number" @input="calculateAutomaticValues" class="flex-1 border-b-2 border-orange-200 text-right text-sm font-bold bg-transparent outline-none"><div class="flex items-center w-18"><input v-model.number="form.세액공제원금_세율" type="number" class="w-full text-right text-[11px] font-bold border-b text-orange-400 bg-transparent outline-none"><span class="text-[10px] ml-0.5">%</span></div></div>
@@ -302,7 +309,7 @@
                     <div v-if="form.상태 !== '납입중'" class="bg-indigo-50 p-4 rounded-xl space-y-4 border border-indigo-100 shadow-sm">
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="text-[11px] font-black text-indigo-400 block mb-1">개시 연월일</label><input v-model="form.개시연월" type="date" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none focus:border-indigo-500 transition"></div>
-                            <div v-if="form.유형 !== '국민연금'"><label class="text-[11px] font-black text-indigo-400 block mb-1">수령 기간(년)</label><input v-model.number="form.수령기간" type="number" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none"></div>
+                            <div v-if="form.유형 !== '국민연금' && form.유형 !== '실업급여(비과세)'"><label class="text-[11px] font-black text-indigo-400 block mb-1">수령 기간(년)</label><input v-model.number="form.수령기간" type="number" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="text-[11px] font-black text-indigo-400 block mb-1">월 수령(세전)</label><input v-model.number="form.수령액_세전" type="number" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black text-right outline-none"></div>
@@ -339,7 +346,7 @@
                 }
             },
             computed: {
-                totalInvestableAssets() { return (this.assets || []).reduce((sum, a) => sum + (a.유형 === '국민연금' ? 0 : this.getAssetValue(a)), 0); },
+                totalInvestableAssets() { return (this.assets || []).reduce((sum, a) => sum + (a.유형 === '국민연금' || a.유형 === '실업급여(비과세)' ? 0 : this.getAssetValue(a)), 0); },
                 currentDashboardDate() { if (!this.fullLabels || !this.fullLabels.length) return ''; return this.fullLabels[this.chartOffset] || ''; },
                 currentDashboardData() {
                     this.riskTick;
@@ -373,7 +380,7 @@
                     const monthsToTarget = (targetDate.getFullYear() - baseDate.getFullYear()) * 12 + (targetDate.getMonth() - baseDate.getMonth());
                     const rate = parseFloat(this.settings.returnRate) || 6.0;
                     const monthlyRate = rate / 12 / 100;
-                    return this.assets.filter(a => a.유형 !== '국민연금').map(a => {
+                    return this.assets.filter(a => a.유형 !== '국민연금' && a.유형 !== '실업급여(비과세)').map(a => {
                         let v1 = this.parseMoney(a.비과세원금), v2 = this.parseMoney(a.이연퇴직소득), v3 = this.parseMoney(a.세액공제원금), v4 = this.parseMoney(a.운용수익), v5 = this.parseMoney(a.보험잔고);
                         for (let i = 0; i <= monthsToTarget; i++) {
                             const cur = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
@@ -411,7 +418,16 @@
                         this.assets.forEach(a => {
                             const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= mStr && s.종료연월 >= mStr);
                             let outAmt = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= mStr) ? this.parseMoney(a.수령액_세전) : 0);
-                            if (a.유형 === '국민연금') healthIncomeSum += (outAmt * 0.5); else pensionIncomeSum += outAmt;
+                            
+                            // [핵심 로직] 실업급여는 세금 및 건보료 산정에서 완전 제외
+                            if (a.유형 === '실업급여(비과세)') {
+                                // 아무것도 더하지 않음 (Pass)
+                            } else if (a.유형 === '국민연금') {
+                                healthIncomeSum += (outAmt * 0.5); // 국민연금은 50%만 건보료 반영
+                            } else {
+                                pensionIncomeSum += outAmt; // 사적연금 소득 합산
+                                healthIncomeSum += outAmt;  // 사적연금 건보료 합산
+                            }
                         });
                     }
                     healthIncomeSum += (this.parseMoney(this.settings.otherIncome) || 0) * 10000;
@@ -471,6 +487,7 @@
                 calculateAutomaticValues() {
                     const total = this.parseMoney(this.form.평가금액), p1 = this.parseMoney(this.form.비과세원금), p2 = this.parseMoney(this.form.이연퇴직소득), p3 = this.parseMoney(this.form.세액공제원금), monthly = this.parseMoney(this.form.수령액_세전), years = this.parseMoney(this.form.수령기간);
                     if (this.form.투자운용형) { this.form.운용수익 = Math.max(0, total - (p1 + p2 + p3)); this.form.보험잔고 = 0; } 
+                    else if (this.form.유형 === '실업급여(비과세)') { this.form.보험잔고 = 0; this.form.운용수익 = 0; this.form.평가금액 = 0; }
                     else { if (this.form.개시연월 && years > 0) { const now = new Date(); const parts = this.form.개시연월.split('-'); const startIdx = parseInt(parts[0]) * 12 + (parseInt(parts[1]) - 1); const endIdx = startIdx + (years * 12) - 1; let rem = 0; let nowIdx = now.getFullYear()*12+now.getMonth(); if (nowIdx <= startIdx) rem = years * 12; else if (nowIdx <= endIdx) rem = (endIdx - nowIdx) + 1; this.form.보험잔고 = monthly * rem; this.form.평가금액 = this.form.보험잔고; } else { this.form.보험잔고 = 0; } this.form.운용수익 = 0; }
                 },
                 async fetchData() { 
@@ -497,7 +514,6 @@
                         const datasets = []; const sums = new Array(this.monthsPerView).fill(0);
         
                         this.assets.forEach((a, idx) => {
-                            // [핵심수정] 세후 버튼 활성화 시 rawBarDataPost 데이터를 사용하도록 변경
                             const sourceData = (this.isPostTaxView && this.viewMode === 'simulation') ? this.rawBarDataPost[idx] : this.rawBarData[idx];
                             const sliced = sourceData.slice(start, end); 
                             while(sliced.length < this.monthsPerView) sliced.push(0);
@@ -514,7 +530,6 @@
                         this.calculatedYMax = this.getNiceScale(Math.max(...sums, 1) / 0.7, 10);
                         this.chartInstance = new Chart(ctx, { type: 'bar', data: { labels: new Array(this.monthsPerView).fill(''), datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: {
                 filter: function(tooltipItem) {
-                    // 금액(raw)이 0보다 큰 것만 말풍선에 노출
                     return tooltipItem.raw > 0;
                 },
                 callbacks: {
@@ -522,7 +537,6 @@
                         let label = context.dataset.label || '';
                         if (label) { label += ': '; }
                         if (context.parsed.y !== null) {
-                            // 단위 '만'을 붙여 가독성 향상
                             label += context.parsed.y.toLocaleString() + '만';
                         }
                         return label;
@@ -540,36 +554,25 @@
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
-                // [복구] 홈 그래프 항상 현재 연월(2026.02)부터 시작하도록 고정
                 generateLabelsFromStrategy() {
-    const now = new Date();
-    // 현재 월부터 시작
-    let minDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    // 기본 종료일은 10년 뒤
-    let maxDate = new Date(minDate.getFullYear() + 10, minDate.getMonth(), 1);
-
-    // [핵심] 전략 데이터가 있다면 가장 늦은 종료연월을 maxDate로 설정
-    if (this.strategies && this.strategies.length > 0) {
-        const lastDateStr = [...this.strategies]
-            .map(s => s.종료연월)
-            .filter(d => d)
-            .sort()
-            .pop();
-        if (lastDateStr) {
-            const [y, m] = lastDateStr.split('-').map(Number);
-            maxDate = new Date(y, m - 1, 1);
-        }
-    }
-
-    const labs = [];
-    let cur = new Date(minDate);
-    // 시작월부터 마지막 전략 종료월까지 루프
-    while (cur <= maxDate) {
-        labs.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
-        cur.setMonth(cur.getMonth() + 1);
-    }
-    return labs;
-},
+                    const now = new Date();
+                    let minDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    let maxDate = new Date(minDate.getFullYear() + 10, minDate.getMonth(), 1);
+                    if (this.strategies && this.strategies.length > 0) {
+                        const lastDateStr = [...this.strategies].map(s => s.종료연월).filter(d => d).sort().pop();
+                        if (lastDateStr) {
+                            const [y, m] = lastDateStr.split('-').map(Number);
+                            maxDate = new Date(y, m - 1, 1);
+                        }
+                    }
+                    const labs = [];
+                    let cur = new Date(minDate);
+                    while (cur <= maxDate) {
+                        labs.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+                        cur.setMonth(cur.getMonth() + 1);
+                    }
+                    return labs;
+                },
                 preCalculateData() {
                     if (this.viewMode === 'history') {
                         const historyMap = {}; (this.history || []).forEach(h => { const m = String(h.수령일자).substring(0, 7); if(!historyMap[m]) historyMap[m] = {}; historyMap[m][h.자산이름] = (historyMap[m][h.자산이름] || 0) + this.parseMoney(h.수령금액); });
@@ -592,7 +595,7 @@
                                 buckets.forEach(b => { let sub = Math.min(a[b.amt], toDeduct); totalTax += (sub * b.rate / 100); a[b.amt] -= sub; toDeduct -= sub; });
                                 const vPost = outPre - totalTax; a.curBal = (a.curBal * (1 + rate / 1200)) - outPre;
                                 this.rawBarData[idx].push(outPre / 10000); this.rawBarDataPost[idx].push(vPost / 10000);
-                                if (a.유형 !== '국민연금') totalLineBal += Math.max(0, a.curBal);
+                                if (a.유형 !== '국민연금' && a.유형 !== '실업급여(비과세)') totalLineBal += Math.max(0, a.curBal);
                             });
                             this.rawLineData.push(Math.round(totalLineBal / 10000));
                         });
@@ -610,28 +613,29 @@
                 async addHistory(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); const h = { ...this.historyForm, 아이디: Date.now().toString() }; if(!this.history) this.history = []; this.history.push(h); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveHistory', data: h }) }); this.preCalculateData(); this.restoreBtnFeedback(fb); },
                 async deleteHistory(id, e) { if(!confirm("삭제하시겠습니까?")) return; this.history = this.history.filter(h => h.아이디 !== id); this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'deleteHistory', data: { 아이디: id } }) }); this.preCalculateData(); },
                 async saveSettings(e) {
-    const fb = await this.applyBtnFeedback(e, "저장 중...");
-    
-    // 시트의 항목명과 일치하도록 키값을 구성하여 전달해야 합니다.
-    const settingsPayload = {
-        ...this.settings,
-        "monthsPerView": this.monthsPerView  // 누락된 화면 표시 개월 수 추가
-    };
-    
-    this.saveLocal();
-    await fetch(GAS_API_URL, { 
-        method: 'POST', 
-        body: JSON.stringify({ op: 'saveSettings', data: settingsPayload }) 
-    });
-    
-    this.preCalculateData();
-    this.restoreBtnFeedback(fb);
-},
+                    const fb = await this.applyBtnFeedback(e, "저장 중...");
+                    const settingsPayload = { ...this.settings, "monthsPerView": this.monthsPerView };
+                    this.saveLocal();
+                    await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: settingsPayload }) });
+                    this.preCalculateData();
+                    this.restoreBtnFeedback(fb);
+                },
                 saveHelp() { this.isHelpEditing = false; this.saveSettings({ target: { closest: () => ({ innerText: '저장', disabled: false, style: {} }) } }); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
-                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); if (row.항목 === 'monthsPerView') {
-            this.monthsPerView = parseInt(row.값) || 8;
-        }; this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
+                async fetchData() { 
+                    this.isLoading = true; 
+                    try { 
+                        const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); 
+                        if (json.result === 'success') { 
+                            this.assets = this.sanitizeData(json.data.assets || []); 
+                            this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); 
+                            this.history = this.sanitizeData(json.data.history || []); 
+                            if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; if(row.항목 === 'monthsPerView') this.monthsPerView = parseInt(row.값) || 8; }); 
+                            this.saveLocal(); this.preCalculateData(); this.drawChart(); 
+                        } 
+                    } catch (e) {} 
+                    this.isLoading = false; 
+                },
                 resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
             },
             mounted() { this.loadLocal(); this.fetchData(); window.addEventListener('resize', this.updateLayout); }
@@ -639,5 +643,3 @@
     </script>
 </body>
 </html>
-
-
