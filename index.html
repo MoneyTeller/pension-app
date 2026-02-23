@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217-8)</title>
+    <title>PensionTalk V2.0 (v217-9)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -416,17 +416,14 @@
                     for(let m=1; m<=12; m++) {
                         const mStr = `${year}-${String(m).padStart(2,'0')}`;
                         this.assets.forEach(a => {
-                            // [FIX] 실업급여 유형은 리스크 계산 합계에서 즉시 탈출
-                            if (a.유형 === '실업급여(비과세)') return;
-
+                            // [FIX] 실업급여는 세금 및 건보료 합산에서 아예 제외 (이름이나 유형에 포함된 경우)
+                            if (a.유형 === '실업급여(비과세)' || a.이름.includes('실업급여')) return;
+                            
                             const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= mStr && s.종료연월 >= mStr);
                             let outAmt = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= mStr) ? this.parseMoney(a.수령액_세전) : 0);
                             
                             if (a.유형 === '국민연금') healthIncomeSum += (outAmt * 0.5); 
-                            else {
-                                pensionIncomeSum += outAmt;
-                                healthIncomeSum += outAmt;
-                            }
+                            else { pensionIncomeSum += outAmt; healthIncomeSum += outAmt; }
                         });
                     }
                     healthIncomeSum += (this.parseMoney(this.settings.otherIncome) || 0) * 10000;
@@ -543,25 +540,24 @@
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
                 
-                // [FIX] 타임라인 생성 시 개시연월도 포함하여 그래프 전체 기간 확장
+                // [FIX] 차트 X축 기간 결정 로직: 전략 종료일뿐만 아니라 자산 개시일도 반영
                 generateLabelsFromStrategy() {
                     const now = new Date();
                     let minDate = new Date(now.getFullYear(), now.getMonth(), 1);
                     let maxDate = new Date(minDate.getFullYear() + 10, minDate.getMonth(), 1);
 
-                    const allDates = [];
-                    this.strategies.forEach(s => { if(s.종료연월) allDates.push(s.종료연월); });
-                    this.assets.forEach(a => { if(a.개시연월) allDates.push(a.개시연월.substring(0,7)); });
+                    const datesToCheck = [];
+                    this.strategies.forEach(s => { if(s.종료연월) datesToCheck.push(s.종료연월); });
+                    this.assets.forEach(a => { if(a.개시연월) datesToCheck.push(a.개시연월.substring(0,7)); });
 
-                    if (allDates.length > 0) {
-                        const lastDateStr = allDates.sort().pop();
+                    if (datesToCheck.length > 0) {
+                        const lastDateStr = datesToCheck.sort().pop();
                         const [y, m] = lastDateStr.split('-').map(Number);
-                        const targetMax = new Date(y, m - 1, 1);
-                        if (targetMax > maxDate) maxDate = targetMax;
+                        const potentialMax = new Date(y, m - 1, 1);
+                        if (potentialMax > maxDate) maxDate = potentialMax;
                     }
 
-                    const labs = [];
-                    let cur = new Date(minDate);
+                    const labs = []; let cur = new Date(minDate);
                     while (cur <= maxDate) {
                         labs.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
                         cur.setMonth(cur.getMonth() + 1);
@@ -588,12 +584,12 @@
                                 let outPre = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= dStr) ? this.parseMoney(a.수령액_세전) : 0);
                                 
                                 let toDeduct = outPre, totalTax = 0;
-                                // 실업급여는 세금 계산 무시
+                                // [FIX] 실업급여는 세금 공제 로직을 태우지 않음
                                 if (a.유형 !== '실업급여(비과세)') {
                                     const buckets = [{amt: 'v1', rate: a.비과세원금_세율 || 0}, {amt: 'v2', rate: a.이연퇴직소득_세율 || 0}, {amt: 'v3', rate: a.세액공제원금_세율 || 5.5}, {amt: 'v4', rate: a.운용수익_세율 || 5.5}, {amt: 'v5', rate: a.보험잔고_세율 || 5.5}];
                                     buckets.forEach(b => { let sub = Math.min(a[b.amt], toDeduct); totalTax += (sub * b.rate / 100); a[b.amt] -= sub; toDeduct -= sub; });
                                 }
-
+                                
                                 const vPost = outPre - totalTax; a.curBal = (a.curBal * (1 + rate / 1200)) - outPre;
                                 this.rawBarData[idx].push(outPre / 10000); this.rawBarDataPost[idx].push(vPost / 10000);
                                 if (a.유형 !== '국민연금' && a.유형 !== '실업급여(비과세)') totalLineBal += Math.max(0, a.curBal);
@@ -616,7 +612,7 @@
                 async saveSettings(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); const settingsPayload = { ...this.settings, "monthsPerView": this.monthsPerView }; this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: settingsPayload }) }); this.preCalculateData(); this.restoreBtnFeedback(fb); },
                 saveHelp() { this.isHelpEditing = false; this.saveSettings({ target: { closest: () => ({ innerText: '저장', disabled: false, style: {} }) } }); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
-                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; if(row.항목 === 'monthsPerView') this.monthsPerView = parseInt(row.값) || 8; }); this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
+                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; if (row.항목 === 'monthsPerView') this.monthsPerView = parseInt(row.값) || 8; }); this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
                 resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
             },
             mounted() { this.loadLocal(); this.fetchData(); window.addEventListener('resize', this.updateLayout); }
