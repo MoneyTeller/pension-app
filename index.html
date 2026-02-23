@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217-4 최종본)</title>
+    <title>PensionTalk V2.0 (v217-4)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -328,7 +328,7 @@
                     viewMode: 'simulation', isLoading: true,
                     assets: [], strategies: [], history: [], logs: [],
                     settings: { birthDate: '1965-01-01', taxLimit: 1500, healthLimit: 1000, otherIncome: 500, returnRate: 6.0, helpContent: '' },
-                    monthsPerView: 10, chartOffset: 0, stratOffset: 0,
+                    monthsPerView: 8, chartOffset: 0, stratOffset: 0,
                     showModal: false, showHelpModal: false, showLogModal: false, isHelpEditing: false, modalMode: 'add',
                     form: {}, historyForm: { 수령일자: new Date().toISOString().substring(0,10), 자산이름: '', 수령금액: 0 },
                     historyYear: new Date().getFullYear().toString(),
@@ -481,22 +481,8 @@
                             this.assets = this.sanitizeData(json.data.assets || []);
                             this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; });
                             this.history = this.sanitizeData(json.data.history || []); 
-                            if (json.data.settings) {
-                                json.data.settings.forEach(row => {
-                                    // 1. 기존 설정값 적용
-                                    if (this.settings[row.항목] !== undefined) {
-                                        this.settings[row.항목] = row.값;
-                                    }
-                                    // 2. 화면 표시 개월수 적용 (루프 안으로 이동)
-                                    if (row.항목 === 'monthsPerView') {
-                                        this.monthsPerView = parseInt(row.값) || 10;
-                                    }
-                                });
-                            }
-                            this.saveLocal(); 
-                            this.preCalculateData(); 
-                            this.drawChart(); 
-                            this.isLoading = false; 
+                            if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); 
+                            this.saveLocal(); this.preCalculateData(); this.drawChart(); this.isLoading = false; 
                         } 
                     } catch (e) { console.error(e); this.isLoading = false; } 
                 },
@@ -643,8 +629,7 @@
 },
                 saveHelp() { this.isHelpEditing = false; this.saveSettings({ target: { closest: () => ({ innerText: '저장', disabled: false, style: {} }) } }); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
-                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); 
-                if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); if (row.항목 === 'monthsPerView') {
+                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; }); if (row.항목 === 'monthsPerView') {
             this.monthsPerView = parseInt(row.값) || 8;
         }; this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
                 resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
@@ -654,4 +639,5 @@
     </script>
 </body>
 </html>
+
 
