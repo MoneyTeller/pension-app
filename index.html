@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217-9)</title>
+    <title>PensionTalk V2.0 (v217-11)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -53,20 +53,18 @@
 
         .toggle-box { padding: 3px; background: #f1f5f9; border-radius: 11px; display: flex; gap: 4px; }
         .t-btn { padding: 5px 11px; border-radius: 7px; font-size: 13px; font-weight: 800; }
-        .t-btn-active { background: white; color: #4f46e5; shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .t-btn-active { background: white; color: #4f46e5; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .modal-container { background: white; width: 100%; max-width: 420px; border-radius: 24px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
         .modal-body { flex: 1; overflow-y: auto; padding: 22px; }
-        .modal-footer { padding: 14px 22px; border-top: 1px solid #f1f5f9; background: white; shrink-0; }
+        .modal-footer { padding: 14px 22px; border-top: 1px solid #f1f5f9; background: white; flex-shrink: 0; }
         
-        #critical-error { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); color: #ff5555; z-index: 9999; padding: 20px; font-family: monospace; }
-        .help-content { font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap; }
-        .help-editor { width: 100%; height: 320px; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; font-size: 14px; line-height: 1.5; outline: none; resize: none; background: #fcfcfc; }
-
-        .log-item { border-bottom: 1px solid #f1f5f9; padding: 10px 0; }
-        .log-date { font-size: 10px; color: #94a3b8; font-weight: bold; }
-        .log-name { font-size: 14px; font-weight: 800; color: #1e293b; }
-        .log-detail { font-size: 12px; color: #64748b; line-height: 1.4; }
+        /* 디버그 창 전용 스타일 */
+        .debug-section { margin: 10px; padding: 12px; background: #1e293b; border-radius: 16px; color: #e2e8f0; font-family: monospace; font-size: 11px; }
+        .debug-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .debug-table th { color: #94a3b8; text-align: left; border-bottom: 1px solid #334155; padding: 4px; }
+        .debug-table td { padding: 4px; border-bottom: 1px solid #334155; }
+        .text-debug-val { color: #38bdf8; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -121,14 +119,41 @@
                             </div>
                         </div>
 
-                        <div class="pt-2 px-1">
+                        <div class="pt-2 px-1 pb-4">
                             <input v-if="fullLabels.length > monthsPerView" type="range" v-model.number="chartOffset" :min="0" :max="Math.max(0, fullLabels.length - monthsPerView)" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
                             <div v-if="fullLabels.length > 0" class="flex justify-between items-center text-[11px] text-slate-400 font-bold mt-1 px-1">
                                 <span>{{ formatShortDate(fullLabels[0]) }}</span>
                                 <span>{{ formatShortDate(fullLabels[fullLabels.length-1]) }}</span>
                             </div>
                         </div>
-                    
+                    </div>
+
+                    <div v-if="viewMode === 'simulation'" class="debug-section">
+                        <h3 class="font-black text-emerald-400 border-b border-white/10 pb-1 mb-2 text-xs">퇴직금 IRP 성격별 잔액 추이 검증</h3>
+                        <div class="overflow-x-auto">
+                            <table class="debug-table">
+                                <thead>
+                                    <tr>
+                                        <th>연월</th>
+                                        <th>비과세(v1)</th>
+                                        <th>이연(v2)</th>
+                                        <th>공제(v3)</th>
+                                        <th>수익(v4)</th>
+                                        <th class="text-white">합계</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="row in irpDebugList" :key="row.date">
+                                        <td class="text-slate-400">{{ row.date }}</td>
+                                        <td class="text-debug-val">{{ row.v1 }}</td>
+                                        <td class="text-debug-val">{{ row.v2 }}</td>
+                                        <td class="text-debug-val">{{ row.v3 }}</td>
+                                        <td class="text-debug-val">{{ row.v4 }}</td>
+                                        <td class="text-white font-bold">{{ row.total }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -148,7 +173,6 @@
                             <div>
                                 <div class="flex items-center gap-1.5 mb-0.5">
                                     <div class="text-[12px] font-black text-slate-400 uppercase">{{ a.유형 }} | {{ a.상태 }}</div>
-                                    <div v-if="a.잔고처리 === 'OK'" class="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 rounded font-black">인출완료</div>
                                 </div>
                                 <div class="text-[16px] font-bold text-slate-800">{{ a.이름 }}</div>
                             </div>
@@ -256,28 +280,6 @@
             <button @click="activeTab='settings'" :class="activeTab==='settings'?'text-indigo-600':'text-slate-300'" class="nav-item"><i class="fa-solid fa-sliders text-xl"></i><span class="text-[11px] font-bold">설정</span></button>
         </nav>
 
-        <div v-if="showLogModal" class="modal-overlay" @click.self="showLogModal = false">
-            <div class="modal-container">
-                <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">최근 잔액 변동 기록</h3><button @click="showLogModal = false" class="text-slate-300 text-2xl">&times;</button></div>
-                <div class="modal-body">
-                    <button @click="runWithdrawalManual" :disabled="isLoading" class="w-full mb-4 bg-indigo-600 text-white py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition disabled:opacity-50"><i class="fa-solid fa-play mr-2"></i>지금 즉시 인출 실행 (이번 달 수동)</button>
-                    <div v-if="logs.length === 0" class="text-center py-10 text-slate-400 font-bold">기록이 없습니다.</div>
-                    <div v-for="log in logs" :key="log.date" class="log-item">
-                        <div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div>
-                        <div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div>
-                        <p class="log-detail">{{ log.detail }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false">
-            <div class="modal-container">
-                <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">주요 세법 및 제도 안내</h3><div class="flex items-center gap-3"><button v-if="!isHelpEditing" @click="isHelpEditing = true" class="text-slate-400 hover:text-indigo-600"><i class="fa-solid fa-pen-to-square"></i></button><button v-if="isHelpEditing" @click="saveHelp" class="text-emerald-500 font-bold text-xs">저장</button><button @click="showHelpModal = false" class="text-slate-300 text-2xl ml-2">&times;</button></div></div>
-                <div class="modal-body"><textarea v-if="isHelpEditing" v-model="settings.helpContent" class="help-editor" placeholder="여기에 도움말을 입력하세요."></textarea><div v-else class="help-content" v-text="settings.helpContent"></div></div>
-            </div>
-        </div>
-
         <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
             <div class="modal-container">
                 <div class="flex justify-between items-center p-4 border-b bg-white"><h3 class="font-black text-slate-700 tracking-tighter">연금 자산 상세 설정</h3><button @click="showModal = false" class="text-slate-300 text-2xl">&times;</button></div>
@@ -341,7 +343,7 @@
                     historyYear: new Date().getFullYear().toString(),
                     isPostTaxView: false, chartInstance: null, fullLabels: [],
                     rawBarData: [], rawBarDataPost: [], rawLineData: [],
-                    calculatedYMax: 0, calculatedY1Max: 0,
+                    irpDebugList: [], // 디버그 목록
                     padHome: 200, padStrat: 300, padHistory: 180, padAssets: 100, riskTick: 0
                 }
             },
@@ -385,8 +387,14 @@
                         for (let i = 0; i <= monthsToTarget; i++) {
                             const cur = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
                             const curYm = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`;
+                            
+                            // [계산 프로토콜] 수익률 적용
+                            if (a.투자운용형) { let investable = v1 + v2 + v3 + v4; if (investable > 0) { let profit = investable * monthlyRate; v4 += profit; } }
+                            
                             const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= curYm && s.종료연월 >= curYm);
                             let out = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= curYm) ? this.parseMoney(a.수령액_세전) : 0);
+                            
+                            // [계산 프로토콜] 인출 순서 v1 -> v2 -> v3 -> v4 -> v5
                             if (out > 0) {
                                 let rem = out;
                                 let d1 = Math.min(v1, rem); v1 -= d1; rem -= d1;
@@ -395,7 +403,6 @@
                                 let d4 = Math.min(v4, rem); v4 -= d4; rem -= d4;
                                 let d5 = Math.min(v5, rem); v5 -= d5; rem -= d5;
                             }
-                            if (i < monthsToTarget && a.투자운용형) { let investable = v1 + v2 + v3 + v4; if (investable > 0) { let profit = investable * monthlyRate; v4 += profit; } }
                         }
                         let total = v1 + v2 + v3 + v4 + v5;
                         if (total <= 100) return null;
@@ -416,14 +423,10 @@
                     for(let m=1; m<=12; m++) {
                         const mStr = `${year}-${String(m).padStart(2,'0')}`;
                         this.assets.forEach(a => {
-                            // [FIX] 실업급여는 세금 및 건보료 합산에서 아예 제외 (이름이나 유형에 포함된 경우)
-                            if (a.유형 === '실업급여(비과세)' || a.이름.includes('실업급여')) return;
-                            
+                            if (a.유형 === '실업급여(비과세)') return; // [FIX] 리스크 합산에서 완전 제외
                             const strat = this.strategies.find(s => s.자산명 === a.이름 && s.시작연월 <= mStr && s.종료연월 >= mStr);
                             let outAmt = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= mStr) ? this.parseMoney(a.수령액_세전) : 0);
-                            
-                            if (a.유형 === '국민연금') healthIncomeSum += (outAmt * 0.5); 
-                            else { pensionIncomeSum += outAmt; healthIncomeSum += outAmt; }
+                            if (a.유형 === '국민연금') healthIncomeSum += (outAmt * 0.5); else pensionIncomeSum += outAmt;
                         });
                     }
                     healthIncomeSum += (this.parseMoney(this.settings.otherIncome) || 0) * 10000;
@@ -483,7 +486,7 @@
                 calculateAutomaticValues() {
                     const total = this.parseMoney(this.form.평가금액), p1 = this.parseMoney(this.form.비과세원금), p2 = this.parseMoney(this.form.이연퇴직소득), p3 = this.parseMoney(this.form.세액공제원금), monthly = this.parseMoney(this.form.수령액_세전), years = this.parseMoney(this.form.수령기간);
                     if (this.form.투자운용형) { this.form.운용수익 = Math.max(0, total - (p1 + p2 + p3)); this.form.보험잔고 = 0; } 
-                    else if (this.form.유형 === '실업급여(비과세)') { this.form.평가금액 = 0; this.form.보험잔고 = 0; this.form.운용수익 = 0; }
+                    else if (this.form.유형 === '실업급여(비과세)') { this.form.보험잔고 = 0; this.form.운용수익 = 0; this.form.평가금액 = 0; }
                     else { if (this.form.개시연월 && years > 0) { const now = new Date(); const parts = this.form.개시연월.split('-'); const startIdx = parseInt(parts[0]) * 12 + (parseInt(parts[1]) - 1); const endIdx = startIdx + (years * 12) - 1; let rem = 0; let nowIdx = now.getFullYear()*12+now.getMonth(); if (nowIdx <= startIdx) rem = years * 12; else if (nowIdx <= endIdx) rem = (endIdx - nowIdx) + 1; this.form.보험잔고 = monthly * rem; this.form.평가금액 = this.form.보험잔고; } else { this.form.보험잔고 = 0; } this.form.운용수익 = 0; }
                 },
                 async fetchData() { 
@@ -539,29 +542,17 @@
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f43f5e', '#84cc16'][i % 8]; },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
-                
-                // [FIX] 차트 X축 기간 결정 로직: 전략 종료일뿐만 아니라 자산 개시일도 반영
                 generateLabelsFromStrategy() {
                     const now = new Date();
                     let minDate = new Date(now.getFullYear(), now.getMonth(), 1);
                     let maxDate = new Date(minDate.getFullYear() + 10, minDate.getMonth(), 1);
-
-                    const datesToCheck = [];
-                    this.strategies.forEach(s => { if(s.종료연월) datesToCheck.push(s.종료연월); });
-                    this.assets.forEach(a => { if(a.개시연월) datesToCheck.push(a.개시연월.substring(0,7)); });
-
-                    if (datesToCheck.length > 0) {
-                        const lastDateStr = datesToCheck.sort().pop();
-                        const [y, m] = lastDateStr.split('-').map(Number);
-                        const potentialMax = new Date(y, m - 1, 1);
-                        if (potentialMax > maxDate) maxDate = potentialMax;
+                    const allDates = this.strategies.map(s => s.종료연월).concat(this.assets.map(a => a.개시연월 ? a.개시연월.substring(0,7) : '')).filter(d => d);
+                    if (allDates.length > 0) {
+                        const last = allDates.sort().pop(); const [y, m] = last.split('-').map(Number);
+                        const lastD = new Date(y, m - 1, 1); if (lastD > maxDate) maxDate = lastD;
                     }
-
                     const labs = []; let cur = new Date(minDate);
-                    while (cur <= maxDate) {
-                        labs.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
-                        cur.setMonth(cur.getMonth() + 1);
-                    }
+                    while (cur <= maxDate) { labs.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`); cur.setMonth(cur.getMonth() + 1); }
                     return labs;
                 },
                 preCalculateData() {
@@ -574,25 +565,51 @@
                     } else {
                         this.fullLabels = this.generateLabelsFromStrategy();
                         this.rawBarData = this.assets.map(() => []); this.rawBarDataPost = this.assets.map(() => []); this.rawLineData = [];
-                        const tempAssets = JSON.parse(JSON.stringify(this.assets)).map(a => ({ ...a, curBal: this.getAssetValue(a), v1: this.parseMoney(a.비과세원금), v2: this.parseMoney(a.이연퇴직소득), v3: this.parseMoney(a.세액공제원금), v4: this.parseMoney(a.운용수익), v5: this.parseMoney(a.보험잔고) }));
+                        this.irpDebugList = []; // 디버그 목록 초기화
+
+                        const tempAssets = JSON.parse(JSON.stringify(this.assets)).map(a => ({ 
+                            ...a, curBal: this.getAssetValue(a), 
+                            v1: this.parseMoney(a.비과세원금), v2: this.parseMoney(a.이연퇴직소득), 
+                            v3: this.parseMoney(a.세액공제원금), v4: this.parseMoney(a.운용수익), v5: this.parseMoney(a.보험잔고) 
+                        }));
                         const rate = parseFloat(this.settings.returnRate) || 6.0;
+                        const monthlyRate = rate / 1200;
                         
                         this.fullLabels.forEach((dStr, i) => {
                             let totalLineBal = 0;
                             tempAssets.forEach((a, idx) => {
+                                // 1. 수익률 적용 (IRP 등 투자운용형인 경우)
+                                if (a.투자운용형) {
+                                    let investable = a.v1 + a.v2 + a.v3 + a.v4;
+                                    if (investable > 0) {
+                                        let profit = investable * monthlyRate;
+                                        a.v4 += profit; a.curBal += profit;
+                                    }
+                                }
+
                                 const strat = this.strategies.find(s => s.자산명 === a.이름 && String(s.시작연월) <= dStr && String(s.종료연월) >= dStr);
                                 let outPre = (strat) ? this.parseMoney(strat.인출금액) : (a.상태 === '수령중' && (!a.개시연월 || a.개시연월.substring(0,7) <= dStr) ? this.parseMoney(a.수령액_세전) : 0);
                                 
+                                // 2. 인출 및 세금 계산
                                 let toDeduct = outPre, totalTax = 0;
-                                // [FIX] 실업급여는 세금 공제 로직을 태우지 않음
                                 if (a.유형 !== '실업급여(비과세)') {
                                     const buckets = [{amt: 'v1', rate: a.비과세원금_세율 || 0}, {amt: 'v2', rate: a.이연퇴직소득_세율 || 0}, {amt: 'v3', rate: a.세액공제원금_세율 || 5.5}, {amt: 'v4', rate: a.운용수익_세율 || 5.5}, {amt: 'v5', rate: a.보험잔고_세율 || 5.5}];
                                     buckets.forEach(b => { let sub = Math.min(a[b.amt], toDeduct); totalTax += (sub * b.rate / 100); a[b.amt] -= sub; toDeduct -= sub; });
                                 }
                                 
-                                const vPost = outPre - totalTax; a.curBal = (a.curBal * (1 + rate / 1200)) - outPre;
+                                const vPost = outPre - totalTax; a.curBal -= outPre;
                                 this.rawBarData[idx].push(outPre / 10000); this.rawBarDataPost[idx].push(vPost / 10000);
                                 if (a.유형 !== '국민연금' && a.유형 !== '실업급여(비과세)') totalLineBal += Math.max(0, a.curBal);
+
+                                // [디버그 전용] '퇴직금IRP' 추이 데이터 수집
+                                if (a.이름 === '퇴직금IRP' && dStr <= '2027-12') {
+                                    this.irpDebugList.push({
+                                        date: dStr,
+                                        v1: this.formatDisplay(a.v1), v2: this.formatDisplay(a.v2),
+                                        v3: this.formatDisplay(a.v3), v4: this.formatDisplay(a.v4),
+                                        total: this.formatDisplay(a.curBal)
+                                    });
+                                }
                             });
                             this.rawLineData.push(Math.round(totalLineBal / 10000));
                         });
@@ -612,7 +629,20 @@
                 async saveSettings(e) { const fb = await this.applyBtnFeedback(e, "저장 중..."); const settingsPayload = { ...this.settings, "monthsPerView": this.monthsPerView }; this.saveLocal(); await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ op: 'saveSettings', data: settingsPayload }) }); this.preCalculateData(); this.restoreBtnFeedback(fb); },
                 saveHelp() { this.isHelpEditing = false; this.saveSettings({ target: { closest: () => ({ innerText: '저장', disabled: false, style: {} }) } }); },
                 sanitizeData(list) { return Array.isArray(list) ? list.map(item => { const c={}; Object.keys(item).forEach(k=>c[k.trim()]=item[k]); return c; }) : []; },
-                async fetchData() { this.isLoading = true; try { const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); if (json.result === 'success') { this.assets = this.sanitizeData(json.data.assets || []); this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); this.history = this.sanitizeData(json.data.history || []); if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; if (row.항목 === 'monthsPerView') this.monthsPerView = parseInt(row.값) || 8; }); this.saveLocal(); this.preCalculateData(); this.drawChart(); } } catch (e) {} this.isLoading = false; },
+                async fetchData() { 
+                    this.isLoading = true; 
+                    try { 
+                        const res = await fetch(`${GAS_API_URL}?op=loadAll`); const json = await res.json(); 
+                        if (json.result === 'success') { 
+                            this.assets = this.sanitizeData(json.data.assets || []); 
+                            this.strategies = this.sanitizeData(json.data.strategies || []).map(s => { s.시작연월 = this.toMonthString(s.시작연월); s.종료연월 = this.toMonthString(s.종료연월); return s; }); 
+                            this.history = this.sanitizeData(json.data.history || []); 
+                            if (json.data.settings) json.data.settings.forEach(row => { if(this.settings[row.항목] !== undefined) this.settings[row.항목] = row.값; if (row.항목 === 'monthsPerView') this.monthsPerView = parseInt(row.값) || 8; }); 
+                            this.saveLocal(); this.preCalculateData(); this.drawChart(); 
+                        } 
+                    } catch (e) {} 
+                    this.isLoading = false; 
+                },
                 resetFullData() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } }
             },
             mounted() { this.loadLocal(); this.fetchData(); window.addEventListener('resize', this.updateLayout); }
