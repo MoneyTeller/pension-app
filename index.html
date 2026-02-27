@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PensionTalk V2.0 (v217.15)</title>
+    <title>PensionTalk V2.0 (v217.16)</title>
     
     <link rel="apple-touch-icon" href="Pension-icon.png">
     <link rel="icon" type="image/png" href="Pension-icon.png">
@@ -65,7 +65,7 @@
         .detail-table .td-date { text-align: left; color: #1e293b; font-weight: bold; }
         .detail-table .td-total { font-weight: 800; color: #4f46e5; }
 
-        /* [v217.15 신규] 로그 아이템 및 상세 근거 강조 */
+        /* [v217.16] 로그 아이템 스타일 */
         .log-item { border-bottom: 1px solid #f1f5f9; padding: 12px 0; }
         .log-date { font-size: 10px; color: #94a3b8; font-weight: bold; }
         .log-name { font-size: 14px; font-weight: 800; color: #1e293b; }
@@ -74,8 +74,7 @@
             display: flex; justify-content: space-between; align-items: center;
             border: 1px solid #f1f5f9;
         }
-        .log-evidence { font-size: 12px; color: #4f46e5; font-weight: 800; font-family: monospace; }
-        .log-nature-tag { font-size: 10px; color: #6366f1; background: #eef2ff; padding: 2px 6px; border-radius: 4px; font-weight: 800; }
+        .log-evidence { font-size: 12px; color: #64748b; font-weight: 600; font-family: monospace; }
         
         #critical-error { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); color: #ff5555; z-index: 9999; padding: 20px; font-family: monospace; }
         .help-content { font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap; }
@@ -86,7 +85,7 @@
     <div id="critical-error"></div>
     <div id="app" v-cloak class="app-shell" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
         <header>
-            <h1 class="text-indigo-900 font-black text-xl tracking-tighter">PensionTalk v217.15</h1>
+            <h1 class="text-indigo-900 font-black text-xl tracking-tighter">PensionTalk v217.16</h1>
             <button @click="forceSync" :disabled="isLoading"><i class="fa-solid fa-arrows-rotate text-slate-400" :class="{'animate-spin': isLoading}"></i></button>
         </header>
 
@@ -254,7 +253,13 @@
                 <div class="bg-white border rounded-3xl p-4 space-y-4">
                     <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">생년월일</label><input v-model="settings.birthDate" type="date" class="w-40 border rounded p-1 text-right font-bold text-sm"></div>
                     <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">화면 표시 개월 수</label><input v-model.number="monthsPerView" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
-                    <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">예상 연 수익률 (%)</label><input v-model.number="settings.returnRate" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm" step="0.1"></div>
+                    <div class="flex justify-between items-center py-0.5"><label class="font-black text-indigo-800 text-[12px]">예상 연 투자수익률 (%)</label><input v-model.number="settings.returnRate" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm" step="0.1"></div>
+                    <div class="border-t pt-4 space-y-3">
+                        <h3 class="text-sm font-black text-indigo-800 uppercase mb-1">리스크 한도 기준</h3>
+                        <div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">연금 금융소득 한도(만)</label><input v-model.number="settings.taxLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
+                        <div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px]">피부양자 탈락 기준(만)</label><input v-model.number="settings.healthLimit" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
+                        <div class="flex justify-between items-center py-0.5"><label class="font-bold text-[12px] text-orange-600">기타 금융 소득(만)</label><input v-model.number="settings.otherIncome" type="number" class="w-24 border rounded p-1 text-right font-bold text-sm"></div>
+                    </div>
                     <button @click="saveSettings($event)" class="w-full bg-indigo-900 text-white py-3.5 rounded-xl font-black shadow-xl text-base">설정 저장</button>
                     <button @click="showHelpModal = true" class="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-bold mt-1 text-sm border border-blue-100 shadow-sm"><i class="fa-solid fa-book-open mr-2"></i>도움말</button>
                     <button @click="resetFullData" class="w-full text-red-400 text-[11px] font-bold underline pt-2 text-center">전체 데이터 초기화</button>
@@ -279,10 +284,8 @@
                     <div v-for="log in logs" :key="log.date" class="log-item">
                         <div class="flex justify-between items-start mb-1"><span class="log-date">{{ log.date }}</span><span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">{{ log.type }}</span></div>
                         <div class="flex justify-between mb-1"><span class="log-name">{{ log.name }}</span><span class="text-indigo-600 font-black">-{{ (log.amount || 0).toLocaleString() }}원</span></div>
-                        
                         <div class="log-detail-box">
                             <span class="log-evidence">{{ log.detail }}</span>
-                            <span v-if="log.type.includes('인출')" class="log-nature-tag">근거 확인됨</span>
                         </div>
                     </div>
                 </div>
@@ -301,9 +304,8 @@
                             <option>실업급여(비과세)</option>
                         </select>
                     </div>
-                    <div><label class="font-black text-slate-400 text-[11px] block mb-1">별칭</label><input v-model="form.이름" class="form-input font-black"></div>
-                    <div><label class="font-black text-slate-400 text-[11px] block mb-1">상태</label><div class="flex gap-1 bg-slate-100 p-1 rounded-xl"><button v-for="s in ['납입중', '보류/거치', '수령중']" @click="form.상태 = s" :class="form.상태 === s ? 'bg-white text-indigo-600 shadow' : 'text-slate-400'" class="flex-1 py-2 text-xs font-black rounded-lg transition">{{ s }}</button></div></div>
-                    
+                    <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">별칭</label><input v-model="form.이름" class="form-input font-black"></div>
+                    <div><label class="font-black text-slate-400 text-[11px] uppercase block mb-1">상태</label><div class="flex gap-1 bg-slate-100 p-1 rounded-xl"><button v-for="s in ['납입중', '보류/거치', '수령중']" @click="form.상태 = s" :class="form.상태 === s ? 'bg-white text-indigo-600 shadow' : 'text-slate-400'" class="flex-1 py-2 text-xs font-black rounded-lg transition">{{ s }}</button></div></div>
                     <div class="bg-slate-50 p-3 rounded-xl border space-y-3 shadow-inner">
                         <div v-if="(form.유형 === '개인연금' || form.유형 === '퇴직연금(IRP)') && form.상태 !== '납입중'"><label class="flex items-center text-xs font-black text-indigo-800 cursor-pointer"><input type="checkbox" v-model="form.투자운용형" class="mr-2 w-4 h-4">투자 운용형 (ETF/펀드)</label></div>
                         <div v-if="form.유형 !== '국민연금' && form.유형 !== '실업급여(비과세)'">
@@ -316,7 +318,6 @@
                              <div class="flex justify-between items-center gap-2"><span class="text-[12px] font-black text-indigo-600 w-24">보험 잔고</span><input v-model.number="form.보험잔고" type="number" class="flex-1 border-b-2 border-indigo-200 text-right text-sm font-bold bg-slate-50 outline-none" readonly></div>
                         </div>
                     </div>
-
                     <div v-if="form.상태 !== '납입중'" class="bg-indigo-50 p-4 rounded-xl space-y-4 border border-indigo-100 shadow-sm">
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="text-[11px] font-black text-indigo-400 block mb-1">개시 연월일</label><input v-model="form.개시연월" type="date" @input="calculateAutomaticValues" class="w-full border-b-2 border-indigo-200 bg-transparent font-black outline-none focus:border-indigo-500 transition"></div>
@@ -328,7 +329,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer flex gap-3 shrink-0"><button v-if="modalMode==='edit'" @click="deleteAsset($event)" class="flex-1 py-4 border rounded-2xl text-red-400 font-black text-sm">삭제</button><button @click="saveAsset($event)" class="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg text-sm">저장하기</button></div>
+                <div class="modal-footer flex gap-3 shrink-0"><button v-if="modalMode==='edit'" @click="deleteAsset($event)" class="flex-1 py-4 border rounded-2xl text-red-400 font-black text-sm transition-all duration-300">삭제</button><button @click="saveAsset($event)" class="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg text-sm transition-all duration-300">저장하기</button></div>
             </div>
         </div>
 
@@ -346,7 +347,7 @@
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer text-center p-3"><p class="text-[9px] text-slate-400 font-bold italic">※ 인출 순서: 비과세 → 이연퇴직 → 세액공제 → 운용수익 → 보험잔고</p></div>
+                <div class="modal-footer text-center p-3"><p class="text-[9px] text-slate-400 font-bold italic">※ 인출 순서: 비과세 → 이연퇴직 → 세액공제 → 운용수익</p></div>
             </div>
         </div>
     </div>
@@ -359,17 +360,18 @@
             data() {
                 return {
                     activeTab: 'home', tabs: ['home', 'assets', 'strategy', 'history', 'settings'],
-                    isLoading: true, viewMode: 'simulation',
+                    touchStartX: 0, touchStartY: 0, touchEndX: 0, touchEndY: 0,
+                    viewMode: 'simulation', isLoading: true,
                     assets: [], strategies: [], history: [], logs: [],
                     settings: { birthDate: '1965-01-01', taxLimit: 1500, healthLimit: 1000, otherIncome: 500, returnRate: 6.0, helpContent: '' },
                     monthsPerView: 8, chartOffset: 0, stratOffset: 0,
-                    showModal: false, showHelpModal: false, showLogModal: false, showDetailModal: false, modalMode: 'add',
+                    showModal: false, showHelpModal: false, showLogModal: false, modalMode: 'add',
                     form: {}, historyForm: { 수령일자: new Date().toISOString().substring(0,10), 자산이름: '', 수령금액: 0 },
                     historyYear: new Date().getFullYear().toString(),
                     isPostTaxView: false, chartInstance: null, fullLabels: [],
                     rawBarData: [], rawBarDataPost: [], rawLineData: [],
                     padHome: 200, padStrat: 300, padHistory: 180, padAssets: 100, riskTick: 0,
-                    detailAssetName: '', assetDetailData: []
+                    showDetailModal: false, detailAssetName: '', assetDetailData: []
                 }
             },
             computed: {
@@ -407,7 +409,7 @@
                             if (out > 0) { let rem = out; let d1 = Math.min(v1, rem); v1 -= d1; rem -= d1; let d2 = Math.min(v2, rem); v2 -= d2; rem -= d2; let d3 = Math.min(v3, rem); v3 -= d3; rem -= d3; let d4 = Math.min(v4, rem); v4 -= d4; rem -= d4; let d5 = Math.min(v5, rem); v5 -= d5; rem -= d5; }
                         }
                         let total = v1 + v2 + v3 + v4 + v5; if (total <= 100) return null;
-                        const labelParts = []; [v1, v2, v3, v4, v5].forEach(v => { if(v > 100) labelParts.push(this.formatDisplay(v)); });
+                        const labelParts = []; [v1,v2,v3,v4,v5].forEach(v => { if(v > 100) labelParts.push(this.formatDisplay(v)); });
                         return { name: a.이름, total: total, labelParts, p1: (v1/total)*100, p2: (v2/total)*100, p3: (v3/total)*100, p4: (v4/total)*100, p5: (v5/total)*100 };
                     }).filter(x => x);
                 },
@@ -424,7 +426,7 @@
                         });
                     }
                     const result = [];
-                    if (pSum > this.settings.taxLimit * 10000) result.push({ msg: `${year}년 연금 금융소득 ${this.formatDisplay(pSum)}만 한도 초과`, type: 'warn' });
+                    if (pSum > this.settings.taxLimit * 10000) result.push({ msg: `${year}년 연금소득 ${this.formatDisplay(pSum)}만 한도 초과`, type: 'warn' });
                     if (hSum + (this.parseMoney(this.settings.otherIncome)*10000) > this.settings.healthLimit * 10000) result.push({ msg: `${year}년 피부양자 탈락 주의`, type: 'danger' });
                     return result;
                 },
@@ -446,7 +448,6 @@
                 viewMode() { this.preCalculateData(); this.drawChart(); }
             },
             methods: {
-                // [v217.15 개선] 보험형 잔고 정밀 계산: 인출 완료 시 다음 달 잔고로 강제 고정
                 calculateAutomaticValues() {
                     const total = this.parseMoney(this.form.평가금액), p1 = this.parseMoney(this.form.비과세원금), p2 = this.parseMoney(this.form.이연퇴직소득), p3 = this.parseMoney(this.form.세액공제원금), monthly = this.parseMoney(this.form.수령액_세전), years = this.parseMoney(this.form.수령기간);
                     if (this.form.상태 === '수령중' && (this.form.유형 === '개인연금' || this.form.유형 === '퇴직연금(IRP)') && !this.form.투자운용형) {
@@ -459,7 +460,7 @@
                             if (nowIdx <= startIdx) rem = years * 12;
                             else if (nowIdx <= endIdx) rem = (endIdx - nowIdx) + 1;
                             
-                            // 인출 완료 시 1개월 추가 차감하여 회귀 방지
+                            // 인출 완료 시 1개월 차감 고정 로직
                             if (this.form.잔고처리 === 'OK') rem = Math.max(0, rem - 1);
                             
                             this.form.보험잔고 = monthly * rem; this.form.평가금액 = this.form.보험잔고;
@@ -468,12 +469,18 @@
                         this.form.운용수익 = Math.max(0, total - (p1 + p2 + p3));
                     }
                 },
-                // [v217.15 개선] 인출 실행 및 근거 캡처
                 async runWithdrawalManual() {
                     this.isLoading = true;
                     try {
-                        // 인출 전 근거 데이터 캡처 로직은 서버(GAS)에서도 병행 처리됨을 가정
-                        const res = await fetch(`${GAS_API_URL}?op=processWithdrawals`);
+                        // [v217.16] 인출 근거 캡처 및 전송
+                        const logData = this.assets.map(a => ({
+                            name: a.이름,
+                            detail: `${this.parseMoney(a.평가금액).toLocaleString()} / ${a.보험잔고 > 0 ? '보험잔고' : '운용수익'}`
+                        }));
+                        const res = await fetch(`${GAS_API_URL}?op=processWithdrawals`, {
+                            method: 'POST',
+                            body: JSON.stringify({ logData })
+                        });
                         const json = await res.json();
                         alert(json.message); await this.fetchData(); await this.fetchLogs();
                     } catch(e) { alert("실행 오류"); }
@@ -499,7 +506,8 @@
                         const historyMap = {}; (this.history || []).forEach(h => { const m = String(h.수령일자).substring(0, 7); if(!historyMap[m]) historyMap[m] = {}; historyMap[m][h.자산이름] = (historyMap[m][h.자산이름] || 0) + this.parseMoney(h.수령금액); });
                         const hLabels = Array.from(new Set((this.history || []).map(h => String(h.수령일자).substring(0, 7)))).sort();
                         this.fullLabels = hLabels.length > 0 ? hLabels : [this.toMonthString(new Date())];
-                        this.rawBarData = this.assets.map(() => this.fullLabels.map(lbl => (historyMap[lbl] ? (historyMap[lbl][this.assets[0].이름] || 0)/10000 : 0))); // Simplified for space, original logic kept
+                        this.rawBarData = this.assets.map((a) => this.fullLabels.map(lbl => (historyMap[lbl] ? (historyMap[lbl][a.이름] || 0)/10000 : 0)));
+                        this.rawBarDataPost = JSON.parse(JSON.stringify(this.rawBarData));
                         this.chartOffset = Math.max(0, this.fullLabels.length - this.monthsPerView);
                     } else {
                         this.fullLabels = this.generateLabelsFromStrategy();
@@ -537,7 +545,7 @@
                         const start = this.chartOffset, end = start + this.monthsPerView;
                         const datasets = this.assets.map((a, idx) => ({
                             type: 'bar', label: a.이름, backgroundColor: this.getChartColor(idx),
-                            data: this.rawBarData[idx].slice(start, end), stack: 'a', order: 2
+                            data: (this.isPostTaxView ? this.rawBarDataPost[idx] : this.rawBarData[idx]).slice(start, end), stack: 'a', order: 2
                         }));
                         if (this.viewMode === 'simulation') {
                             datasets.push({ type: 'line', label: '잔고', borderColor: '#334155', borderWidth: 2, pointRadius: 0, data: this.rawLineData.slice(start, end), yAxisID: 'y1', order: 1 });
@@ -548,9 +556,8 @@
                         });
                     });
                 },
-                openAssetModal(a = null) { this.modalMode = a ? 'edit' : 'add'; this.form = a ? JSON.parse(JSON.stringify(a)) : { 아이디: Date.now().toString(), 유형: '개인연금', 이름: '', 상태: '납입중', 평가금액: 0, 비과세원금: 0, 세액공제원금: 0, 보험잔고: 0 }; this.calculateAutomaticValues(); this.showModal = true; },
-                async saveAsset(e) { this.calculateAutomaticValues(); const idx = this.assets.findIndex(a => a.아이디 === this.form.아이디); if (idx >= 0) this.assets[idx] = { ...this.form }; else this.assets.push({ ...this.form }); this.saveLocal(); this.showModal = false; },
-                async deleteAsset(e) { if(confirm("삭제하시겠습니까?")) { this.assets = this.assets.filter(a => a.아이디 !== this.form.아이디); this.saveLocal(); this.showModal = false; } },
+                openAssetModal(a = null) { this.modalMode = a ? 'edit' : 'add'; this.form = a ? JSON.parse(JSON.stringify(a)) : { 아이디: Date.now().toString(), 유형: '개인연금', 이름: '', 상태: '납입중', 평가금액: 0 }; this.calculateAutomaticValues(); this.showModal = true; },
+                async saveAsset() { this.calculateAutomaticValues(); const idx = this.assets.findIndex(a => a.아이디 === this.form.아이디); if (idx >= 0) this.assets[idx] = { ...this.form }; else this.assets.push({ ...this.form }); this.saveLocal(); this.showModal = false; },
                 openDetailView(e) { this.detailAssetName = e.target.value; if(!this.detailAssetName) return; this.detailAssetSim(this.detailAssetName); this.showDetailModal = true; e.target.value = ""; },
                 detailAssetSim(name) {
                     const a = this.assets.find(i => i.이름 === name); if(!a) return;
@@ -566,35 +573,29 @@
                     }
                     this.assetDetailData = res;
                 },
-                saveLocal() { localStorage.setItem('pensiontalk_v2_15', JSON.stringify({ a: this.assets, s: this.strategies, h: this.history, st: this.settings })); },
-                loadLocal() { const d = JSON.parse(localStorage.getItem('pensiontalk_v2_15') || '{}'); if (d.a) this.assets = d.a; if (d.s) this.strategies = d.s; if (d.h) this.history = d.h; if (d.st) this.settings = d.st; },
-                updateLayout() { if (this.$refs.homeHeader) this.padHome = this.$refs.homeHeader.offsetHeight + 10; if (this.$refs.assetsHeader) this.padAssets = this.$refs.assetsHeader.offsetHeight + 10; },
+                saveLocal() { localStorage.setItem('pensiontalk_v2_16', JSON.stringify({ a: this.assets, s: this.strategies, h: this.history, st: this.settings })); },
+                loadLocal() { const d = JSON.parse(localStorage.getItem('pensiontalk_v2_16') || '{}'); if (d.a) this.assets = d.a; if (d.s) this.strategies = d.s; if (d.h) this.history = d.h; if (d.st) this.settings = d.st; },
                 parseMoney(v) { return (v === undefined || v === null || v === '') ? 0 : (typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0); },
                 formatWon(v) { return Math.round(v).toLocaleString(); },
                 formatDisplay(v) { return Math.round(this.parseMoney(v) / 10000).toLocaleString(); },
                 getAssetValue(a) { return this.parseMoney(a.평가금액); },
                 getChartColor(i) { return ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9'][i % 5]; },
-                toMonthString(d) { if(typeof d === 'string') return d.substring(0,7); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; },
+                toMonthString(d) { if(!d) return ""; if(typeof d === 'string') return d.substring(0,7); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; },
                 generateLabelsFromStrategy() { const now = new Date(); let labs = []; for(let i=0; i<120; i++) labs.push(this.toMonthString(new Date(now.getFullYear(), now.getMonth()+i, 1))); return labs; },
                 formatDashboardDate(d) { return d ? d.replace('-', '년 ') + '월' : ''; },
                 formatShortDate(d) { return d ? d.substring(2).replace('-', '.') : ''; },
                 sanitizeData(l) { return Array.isArray(l) ? l : []; },
-                addStrategy() { this.strategies.push({ 아이디: Date.now().toString(), 시작연월: '', 종료연월: '', 자산명: this.assets[0]?.이름, 인출금액: 0 }); },
-                async saveStrategy(s, e) { this.saveLocal(); },
-                async deleteStrategy(id, e) { this.strategies = this.strategies.filter(s => s.아이디 !== id); this.saveLocal(); },
-                async addHistory(e) { const h = { ...this.historyForm, 아이디: Date.now().toString() }; this.history.push(h); this.saveLocal(); },
-                async deleteHistory(id, e) { this.history = this.history.filter(h => h.아이디 !== id); this.saveLocal(); },
-                async saveSettings(e) { this.saveLocal(); },
-                openLogModal() { this.fetchLogs(); this.showLogModal = true; },
+                updateLayout() { if (this.$refs.homeHeader) this.padHome = this.$refs.homeHeader.offsetHeight + 10; if (this.$refs.assetsHeader) this.padAssets = this.$refs.assetsHeader.offsetHeight + 10; if (this.$refs.stratHeader) this.padStrat = this.$refs.stratHeader.offsetHeight + 10; if (this.$refs.historyHeader) this.padHistory = this.$refs.historyHeader.offsetHeight + 10; },
+                async forceSync() { await this.fetchData(); await this.fetchLogs(); },
                 handleTouchStart(e) { this.touchStartX = e.changedTouches[0].screenX; },
                 handleTouchEnd(e) { 
-                    const dx = this.touchStartX - e.changedTouches[0].screenX;
-                    const idx = this.tabs.indexOf(this.activeTab);
+                    const dx = this.touchStartX - e.changedTouches[0].screenX; const idx = this.tabs.indexOf(this.activeTab);
                     if (Math.abs(dx) > 70) {
                         if (dx > 0 && idx < this.tabs.length - 1) this.activeTab = this.tabs[idx + 1];
                         else if (dx < 0 && idx > 0) this.activeTab = this.tabs[idx - 1];
                     }
                 },
+                openLogModal() { this.fetchLogs(); this.showLogModal = true; },
                 resetFullData() { if(confirm("초기화?")) { localStorage.clear(); location.reload(); } }
             },
             mounted() { this.loadLocal(); this.fetchData(); window.addEventListener('resize', this.updateLayout); }
