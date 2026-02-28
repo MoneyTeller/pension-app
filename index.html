@@ -571,7 +571,11 @@
                             const sourceData = (this.isPostTaxView && this.viewMode === 'simulation') ? this.rawBarDataPost[idx] : this.rawBarData[idx];
                             const sliced = sourceData.slice(start, end); 
                             while(sliced.length < this.monthsPerView) sliced.push(0);
-                            sliced.forEach((v, i) => sums[i] += v);
+    
+                            // Y축 높이 고정을 위해, 합계(sums)는 항상 세전(rawBarData) 데이터를 기준으로 누적합니다!
+                            const baseData = this.rawBarData[idx].slice(start, end);
+                            baseData.forEach((v, i) => sums[i] += (v || 0));
+
                             datasets.push({ type: 'bar', label: a.이름, backgroundColor: this.getChartColor(idx), data: sliced, stack: 'a', order: 2, yAxisID: 'y' });
                         });
                         if (this.viewMode === 'simulation') {
